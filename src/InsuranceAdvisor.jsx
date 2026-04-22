@@ -1,81 +1,179 @@
 import { useState, useEffect, useRef } from "react";
 
-const INSURERS = {
-  sompo: {
-    name: "損保ジャパン",
-    short: "損保J",
-    color: "#0055A4",
-    accent: "#E8F0FE",
-    logo: "🛡️",
-    strengths: ["入院生活サポート日額1.5万", "退院時諸費用", "交通乗用具の幅広いカバー", "車両新価特約充実"],
-  },
-  tokio: {
-    name: "東京海上日動",
-    short: "東京海上",
-    color: "#C41E3A",
-    accent: "#FDE8EC",
-    logo: "⚓",
-    strengths: ["他車搭乗中の家族補償", "レンタカー費用補償", "示談代行あり", "受託物補償"],
-  },
-  mitsui: {
-    name: "三井住友海上",
-    short: "三井住友",
-    color: "#00875A",
-    accent: "#E6F5EE",
-    logo: "🌿",
-    strengths: ["入院時諸費用充実", "リハビリ120万・福祉機器500万", "海外賠償3億円", "同乗者全員サポート"],
-  },
-};
+// ── Hearing Sections (5 categories) ──
 
-const RECOMMENDATIONS = {
-  "推奨01": { insurer: "sompo", title: "入院生活サポート", desc: "入院時に日額15,000円の生活サポート費用保険金が180日以内で支給されるのは損保ジャパンだけです。個室利用や身の回りの品を揃える費用を重視されるなら、こちらが最適です。" },
-  "推奨02": { insurer: "sompo", title: "退院時諸費用", desc: "5日以上の入院で退院時諸費用が支給されるのは損保ジャパンだけです。退院後の生活立て直しに手厚いサポートが必要な方に推奨します。" },
-  "推奨03": { insurer: "sompo", title: "交通乗用具カバー", desc: "自動車だけでなく、ロープウェー・エレベーター・エスカレーター・動く歩道・船舶・航空機まで、業界最多の交通乗用具事故をカバーできます。幅広い移動手段を使われる方に最適です。" },
-  "推奨04": { insurer: "sompo", title: "車両新価特約", desc: "再取得時諸費用保険金が新車価格の20％（40万円限度）と手厚く、代替自動車の取得期間も事故翌日から1年以内と最長です。新車購入間もない方に推奨します。" },
-  "推奨05": { insurer: "tokio", title: "他車搭乗中補償", desc: "記名被保険者およびご家族が他車搭乗中でも人身傷害が補償されるのは東京海上の強みです。複数の車に乗る機会が多いご家庭に最適です。" },
-  "推奨06": { insurer: "tokio", title: "レンタカー補償", desc: "事故時30日・故障時15日のレンタカー費用が補償されるのは東京海上だけです。車が使えなくなるリスクに最も強い設計です。" },
-  "推奨07": { insurer: "tokio", title: "示談代行・受託物", desc: "個人賠償責任特約で示談代行サービスがあり、さらに他人から借りた物の損害まで補償できるのは東京海上の強みです。" },
-  "推奨08": { insurer: "mitsui", title: "入院時諸費用充実", desc: "ホームヘルパー・ベビーシッター・ペットシッターそれぞれ1日2万円限度と、入院時の生活支援が3社で最も充実しています。ご家族やペットのケアを重視される方に最適です。" },
-  "推奨09": { insurer: "mitsui", title: "重度障害支援", desc: "リハビリテーション訓練120万円、福祉機器等取得500万円、住宅改造500万円と業界屈指の補償額です。万が一の際の自立支援を最優先される方に推奨します。" },
-  "推奨10": { insurer: "mitsui", title: "同乗者全員サポート", desc: "ロードサービスの宿泊費用（1人1.5万円）・帰宅費用（1人2万円）が同乗者全員分支払われます。ご家族や友人との長距離ドライブに最も安心な設計です。" },
-  "推奨11": { insurer: "mitsui", title: "海外賠償3億円", desc: "国外での個人賠償責任が3億円と、他社（1億円）の3倍の設定です。海外旅行や将来の海外生活も見据えるなら、こちらを推奨します。" },
-};
-
-const HEARING_ITEMS_A = [
-  { id: "a1", label: "主な運転者", icon: "👤", category: "A" },
-  { id: "a2", label: "運転者の年齢", icon: "🎂", category: "A" },
-  { id: "a3", label: "運転者の範囲", icon: "👨‍👩‍👧‍👦", category: "A" },
-  { id: "a4", label: "等級・事故有係数", icon: "📊", category: "A" },
-  { id: "a5", label: "事故歴（過去3年）", icon: "⚠️", category: "A" },
-  { id: "a6", label: "年間走行距離", icon: "🛣️", category: "A" },
-  { id: "a7", label: "使用目的", icon: "🎯", category: "A" },
-  { id: "a8", label: "車両情報", icon: "🚗", category: "A" },
-  { id: "a9", label: "車両保険の希望", icon: "🔧", category: "A" },
-  { id: "a10", label: "車両価格・現在価値", icon: "💰", category: "A" },
-  { id: "a11", label: "車両保険タイプ", icon: "📋", category: "A" },
-  { id: "a12", label: "対人・対物賠償", icon: "🤝", category: "A" },
-  { id: "a13", label: "人身傷害補償", icon: "🏥", category: "A" },
-  { id: "a14", label: "弁護士費用特約", icon: "⚖️", category: "A" },
-  { id: "a15", label: "ロードサービス重視度", icon: "🚨", category: "A" },
+const HEARING_SECTIONS = [
+  {
+    id: "family",
+    label: "家族構成・基本情報",
+    icon: "👨‍👩‍👧",
+    color: "#3B82F6",
+    accent: "#EFF6FF",
+    groups: [
+      {
+        label: "ご本人",
+        items: [
+          { id: "fam_self_name", label: "氏名・続柄", icon: "👤" },
+          { id: "fam_self_gender", label: "性別", icon: "⚧" },
+          { id: "fam_self_birth", label: "生年月日", icon: "🎂" },
+          { id: "fam_self_occupation", label: "職業・勤務先区分", icon: "💼" },
+          { id: "fam_self_health", label: "健康状態", icon: "🏥" },
+          { id: "fam_self_retire", label: "リタイア予定年齢", icon: "🏖️" },
+          { id: "fam_self_life", label: "平均余命想定", icon: "📅" },
+        ],
+      },
+      {
+        label: "配偶者",
+        items: [
+          { id: "fam_spouse_name", label: "氏名・続柄", icon: "👤" },
+          { id: "fam_spouse_gender", label: "性別", icon: "⚧" },
+          { id: "fam_spouse_birth", label: "生年月日", icon: "🎂" },
+          { id: "fam_spouse_occupation", label: "職業・勤務先区分", icon: "💼" },
+          { id: "fam_spouse_health", label: "健康状態", icon: "🏥" },
+          { id: "fam_spouse_retire", label: "リタイア予定年齢", icon: "🏖️" },
+          { id: "fam_spouse_life", label: "平均余命想定", icon: "📅" },
+        ],
+      },
+      {
+        label: "お子様",
+        items: [
+          { id: "fam_child_count", label: "人数", icon: "👶" },
+          { id: "fam_child_names", label: "氏名・生年月日", icon: "📝" },
+          { id: "fam_child_edu", label: "進学プラン（公立/私立・自宅/下宿）", icon: "🎓" },
+          { id: "fam_child_independence", label: "独立予定年齢", icon: "🚀" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "income",
+    label: "収入情報",
+    icon: "💴",
+    color: "#10B981",
+    accent: "#ECFDF5",
+    groups: [
+      {
+        label: "給与・事業",
+        items: [
+          { id: "inc_salary_self", label: "給与収入（本人・手取/額面）", icon: "💴" },
+          { id: "inc_salary_spouse", label: "給与収入（配偶者・手取/額面）", icon: "💴" },
+          { id: "inc_raise", label: "昇給率", icon: "📈" },
+          { id: "inc_bonus", label: "賞与", icon: "🎁" },
+          { id: "inc_business", label: "事業収入・副業収入", icon: "💼" },
+        ],
+      },
+      {
+        label: "年金・退職金",
+        items: [
+          { id: "inc_pension_public", label: "公的年金（受給開始・想定額）", icon: "🏛️" },
+          { id: "inc_pension_corp", label: "企業年金・iDeCo受取", icon: "💰" },
+          { id: "inc_retirement", label: "退職金(時期・金額)", icon: "🎊" },
+        ],
+      },
+      {
+        label: "その他収入",
+        items: [
+          { id: "inc_rent", label: "不動産収入（家賃）", icon: "🏢" },
+          { id: "inc_dividend", label: "配当・運用収入", icon: "💹" },
+          { id: "inc_other", label: "その他（一時金・相続見込み）", icon: "✨" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "expense",
+    label: "支出情報",
+    icon: "💸",
+    color: "#F59E0B",
+    accent: "#FFFBEB",
+    groups: [
+      {
+        label: "生活費・固定費",
+        items: [
+          { id: "exp_living", label: "基本生活費（食費・光熱・通信等）", icon: "🛒" },
+          { id: "exp_housing", label: "住居関連費（管理費・税・火災保険）", icon: "🏠" },
+          { id: "exp_edu", label: "教育費（学校・習い事）", icon: "📚" },
+          { id: "exp_insurance", label: "保険料（生命・医療・損保）", icon: "🛡️" },
+          { id: "exp_car", label: "車両関連費（車検・保険・買替）", icon: "🚗" },
+          { id: "exp_tax", label: "税金・社会保険料", icon: "📊" },
+        ],
+      },
+      {
+        label: "イベント費用",
+        items: [
+          { id: "exp_event", label: "イベント費用（結婚・出産・旅行・リフォーム・住宅購入・車購入等）", icon: "🎉" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "asset",
+    label: "資産情報",
+    icon: "🏦",
+    color: "#8B5CF6",
+    accent: "#F5F3FF",
+    groups: [
+      {
+        label: "預貯金",
+        items: [
+          { id: "ast_deposit_bank", label: "金融機関・口座種別", icon: "🏦" },
+          { id: "ast_deposit_balance", label: "残高・金利", icon: "💴" },
+        ],
+      },
+      {
+        label: "運用商品",
+        items: [
+          { id: "ast_inv_account", label: "口座種別（NISA/iDeCo等）", icon: "📂" },
+          { id: "ast_inv_product", label: "金融機関・ファンド名・銘柄", icon: "📈" },
+          { id: "ast_inv_value", label: "現在評価額・取得価額・数量", icon: "💹" },
+          { id: "ast_inv_monthly", label: "積立額・期間・想定利回り", icon: "📊" },
+          { id: "ast_inv_class", label: "アセットクラス（株式/債券/REIT等）", icon: "🔍" },
+        ],
+      },
+      {
+        label: "不動産",
+        items: [
+          { id: "ast_re_type", label: "区分（自宅/投資用）・物件名", icon: "🏘️" },
+          { id: "ast_re_value", label: "取得年・価額・現在評価額", icon: "💰" },
+          { id: "ast_re_depreciation", label: "残存年・減価想定・諸費用", icon: "📉" },
+          { id: "ast_re_rent", label: "家賃収入（投資用）", icon: "💵" },
+        ],
+      },
+      {
+        label: "生命保険",
+        items: [
+          { id: "ast_life_contract", label: "契約者・被保険者・受取人", icon: "👥" },
+          { id: "ast_life_type", label: "保険種類（定期/終身/収入保障/医療/就業不能/介護）", icon: "📋" },
+          { id: "ast_life_amount", label: "保険金額・給付条件", icon: "💳" },
+          { id: "ast_life_premium", label: "保険料・払込期間・保険期間", icon: "⏱️" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "debt",
+    label: "負債情報",
+    icon: "💳",
+    color: "#EF4444",
+    accent: "#FEF2F2",
+    groups: [
+      {
+        label: "ローン",
+        items: [
+          { id: "deb_type", label: "種類（住宅/自動車/その他）", icon: "📑" },
+          { id: "deb_bank", label: "金融機関・借入年月・当初借入額", icon: "🏦" },
+          { id: "deb_balance", label: "現在残高", icon: "💴" },
+          { id: "deb_rate", label: "金利・タイプ（固定/変動/固定期間選択）", icon: "📊" },
+          { id: "deb_payment", label: "毎月返済額・残り期間", icon: "📅" },
+          { id: "deb_bonus", label: "ボーナス返済の有無", icon: "🎁" },
+        ],
+      },
+    ],
+  },
 ];
 
-const HEARING_ITEMS_B = [
-  { id: "b1", label: "自宅の駐車環境", icon: "🏠", category: "B" },
-  { id: "b2", label: "お住まいの地域", icon: "📍", category: "B" },
-  { id: "b3", label: "セカンドカー割引", icon: "🚙", category: "B" },
-  { id: "b4", label: "他保険の加入状況", icon: "📑", category: "B" },
-  { id: "b5", label: "契約形態", icon: "📝", category: "B" },
-  { id: "b6", label: "支払方法の希望", icon: "💳", category: "B" },
-  { id: "b7", label: "現在の保険会社", icon: "🏢", category: "B" },
-  { id: "b8", label: "現在の保険料", icon: "¥", category: "B" },
-  { id: "b9", label: "今の保険の不満点", icon: "😤", category: "B" },
-  { id: "b10", label: "将来の車買替予定", icon: "🔄", category: "B" },
-  { id: "b11", label: "家事・介護支援", icon: "🧹", category: "B" },
-  { id: "b12", label: "入院・通院一時金", icon: "💊", category: "B" },
-  { id: "b13", label: "入院時の生活品質", icon: "🛏️", category: "B" },
-  { id: "b14", label: "レッカー搬送距離", icon: "🚛", category: "B" },
-  { id: "b15", label: "リハビリ・住宅改造等", icon: "♿", category: "B" },
-];
+const ALL_HEARING_ITEMS = HEARING_SECTIONS.flatMap(s => s.groups.flatMap(g => g.items));
+const TOTAL_ITEMS = ALL_HEARING_ITEMS.length;
 
 // ── Audio Utilities ──
 
@@ -118,19 +216,22 @@ function base64ToArrayBuffer(base64) {
 const GEMINI_MODEL = "models/gemini-2.5-flash-native-audio-preview-12-2025";
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
-const SYSTEM_INSTRUCTION = `あなたは保険比較推奨アドバイザーのAIアシスタントです。日本語のみで応答してください。英語や内部思考は出力しないでください。
+const SYSTEM_INSTRUCTION = `あなたはファイナンシャルプランニングのAIヒアリングアドバイザーです。日本語のみで応答してください。英語や内部思考は出力しないでください。
 
 【応答ルール】
 - 1回の応答は2〜3文以内に収めてください。短く簡潔に話してください。
 - 長い説明が必要な場合は、複数のターンに分けて話してください。
 - 一度に全てを説明せず、1つのポイントだけ伝えてから相手の反応を待ってください。
 
-比較対象3社: 損保ジャパン、東京海上日動、三井住友海上
+【ヒアリング目的】
+お客様の家計・ライフプラン作成のため、自然な会話で以下5領域の情報を聞き出してください：
+1. 家族構成・基本情報（ご本人・配偶者・お子様それぞれの氏名、続柄、性別、生年月日、職業・勤務先区分、健康状態、リタイア予定年齢、平均余命想定、お子様の進学プラン・独立予定年齢）
+2. 収入情報（給与、賞与、事業・副業、公的年金、企業年金・iDeCo、退職金、不動産収入、配当・運用収入、その他）
+3. 支出情報（基本生活費、住居関連費、教育費、保険料、車両関連費、税金・社会保険料、イベント費用）
+4. 資産情報（預貯金、運用商品、不動産、生命保険）
+5. 負債情報（住宅ローン・自動車ローン等の借入）
 
-自然な会話でお客様から以下を聞き出してください：
-運転者情報、年齢、運転者範囲、等級・事故歴、走行距離、使用目的、車両情報、車両保険希望、ロードサービス重視度、家族構成、現在の不満点
-
-一度に多くの質問をせず、1つずつ聞いてください。丁寧で親しみやすく会話してください。最初の挨拶から始めてください。`;
+一度に多くの質問をせず、1つずつ聞いてください。丁寧で親しみやすく会話してください。最初はご挨拶とヒアリングの流れのご案内から始めてください。`;
 
 // ── Text Filter: Remove English reasoning/status text, keep only Japanese ──
 
@@ -148,7 +249,7 @@ function filterJapaneseOnly(text) {
     if (!trimmed) return false;
 
     // 日本語文字（ひらがな、カタカナ、漢字）の数を数える
-    const jpChars = (trimmed.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g) || []).length;
+    const jpChars = (trimmed.match(/[぀-ゟ゠-ヿ一-鿿]/g) || []).length;
     // 英字の数を数える
     const enChars = (trimmed.match(/[a-zA-Z]/g) || []).length;
     const totalChars = trimmed.length;
@@ -188,7 +289,7 @@ function isResponseIncomplete(text) {
   }
   // 最後の文字がひらがな/カタカナ/漢字で、文末っぽくない場合
   const lastChar = trimmed.slice(-1);
-  if (/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(lastChar)) {
+  if (/[぀-ゟ゠-ヿ一-鿿]/.test(lastChar)) {
     // 文の途中っぽい場合はtrue
     const lastSentence = trimmed.split(/[。！？]/).pop() || "";
     if (lastSentence.length > 20) return true;
@@ -197,21 +298,6 @@ function isResponseIncomplete(text) {
 }
 
 // ── Small Reusable Components ──
-
-function AnimatedNumber({ value, duration = 800 }) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    let start = 0;
-    const step = value / (duration / 16);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= value) { setDisplay(value); clearInterval(timer); }
-      else setDisplay(Math.round(start));
-    }, 16);
-    return () => clearInterval(timer);
-  }, [value, duration]);
-  return <span>{display}</span>;
-}
 
 function ProgressRing({ percent, color, size = 56, stroke = 4 }) {
   const r = (size - stroke) / 2;
@@ -242,19 +328,17 @@ function Header({ currentView, setCurrentView }) {
           background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 18, fontWeight: 700, color: "#fff",
-        }}>比</div>
+        }}>FP</div>
         <span style={{ color: "#F8FAFC", fontSize: 17, fontWeight: 600, letterSpacing: "-0.02em",
           fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif" }}>
-          保険比較推奨アドバイザー
+          ライフプラン ヒアリングAI
         </span>
-        <span style={{ color: "#64748B", fontSize: 12, marginLeft: 4, fontFamily: "monospace" }}>v0.2 LIVE</span>
+        <span style={{ color: "#64748B", fontSize: 12, marginLeft: 4, fontFamily: "monospace" }}>v0.3 LIVE</span>
       </div>
       <nav style={{ display: "flex", gap: 4 }}>
         {[
           { key: "conversation", label: "🎤 会話", desc: "Gemini Live" },
-          { key: "hearing", label: "📋 ヒアリング", desc: "進捗管理" },
-          { key: "comparison", label: "📊 3社比較", desc: "比較表" },
-          { key: "recommendation", label: "🏆 推奨理由", desc: "トーク" },
+          { key: "hearing", label: "📋 ヒアリング", desc: "進捗・項目" },
         ].map(tab => (
           <button key={tab.key} onClick={() => setCurrentView(tab.key)} style={{
             background: currentView === tab.key ? "rgba(59,130,246,0.15)" : "transparent",
@@ -277,26 +361,41 @@ function Header({ currentView, setCurrentView }) {
 
 const ANALYSIS_MODEL = "models/gemini-2.5-flash";
 
-const ANALYSIS_PROMPT = `あなたは保険ヒアリングの分析AIです。以下の会話から情報を抽出してJSON形式で返してください。
+const ANALYSIS_PROMPT = `あなたはファイナンシャルプランニング分析AIです。以下の会話から情報を抽出してJSON形式で返してください。
 
-抽出対象の項目IDと項目名:
-【A】標準項目: a1:主な運転者, a2:運転者の年齢, a3:運転者の範囲, a4:等級・事故有係数, a5:事故歴（過去3年）, a6:年間走行距離, a7:使用目的, a8:車両情報, a9:車両保険の希望, a10:車両価格・現在価値, a11:車両保険タイプ, a12:対人・対物賠償, a13:人身傷害補償, a14:弁護士費用特約, a15:ロードサービス重視度
-【B】差別化項目: b1:自宅の駐車環境, b2:お住まいの地域, b3:セカンドカー割引, b4:他保険の加入状況, b5:契約形態, b6:支払方法の希望, b7:現在の保険会社, b8:現在の保険料, b9:今の保険の不満点, b10:将来の車買替予定, b11:家事・介護支援, b12:入院・通院一時金, b13:入院時の生活品質, b14:レッカー搬送距離, b15:リハビリ・住宅改造等
+抽出対象の項目ID:
+【1. 家族構成・基本情報】
+- fam_self_name:本人氏名・続柄, fam_self_gender:本人性別, fam_self_birth:本人生年月日, fam_self_occupation:本人職業・勤務先区分, fam_self_health:本人健康状態, fam_self_retire:本人リタイア予定年齢, fam_self_life:本人平均余命想定
+- fam_spouse_name:配偶者氏名・続柄, fam_spouse_gender:配偶者性別, fam_spouse_birth:配偶者生年月日, fam_spouse_occupation:配偶者職業・勤務先区分, fam_spouse_health:配偶者健康状態, fam_spouse_retire:配偶者リタイア予定年齢, fam_spouse_life:配偶者平均余命想定
+- fam_child_count:お子様人数, fam_child_names:お子様氏名・生年月日, fam_child_edu:お子様進学プラン, fam_child_independence:お子様独立予定年齢
+
+【2. 収入情報】
+- inc_salary_self:給与収入(本人), inc_salary_spouse:給与収入(配偶者), inc_raise:昇給率, inc_bonus:賞与, inc_business:事業収入・副業収入
+- inc_pension_public:公的年金, inc_pension_corp:企業年金・iDeCo受取, inc_retirement:退職金
+- inc_rent:不動産収入(家賃), inc_dividend:配当・運用収入, inc_other:その他(一時金・相続見込み)
+
+【3. 支出情報】
+- exp_living:基本生活費, exp_housing:住居関連費, exp_edu:教育費, exp_insurance:保険料, exp_car:車両関連費, exp_tax:税金・社会保険料, exp_event:イベント費用
+
+【4. 資産情報】
+- ast_deposit_bank:預貯金金融機関・口座種別, ast_deposit_balance:預貯金残高・金利
+- ast_inv_account:運用口座種別, ast_inv_product:運用商品・銘柄, ast_inv_value:運用評価額等, ast_inv_monthly:積立額・利回り, ast_inv_class:アセットクラス
+- ast_re_type:不動産区分・物件, ast_re_value:不動産価額, ast_re_depreciation:不動産残存・減価, ast_re_rent:家賃収入
+- ast_life_contract:生保契約者等, ast_life_type:保険種類, ast_life_amount:保険金額, ast_life_premium:保険料・期間
+
+【5. 負債情報】
+- deb_type:負債種類, deb_bank:金融機関・借入年月・当初借入額, deb_balance:現在残高, deb_rate:金利・タイプ, deb_payment:毎月返済額・残り期間, deb_bonus:ボーナス返済有無
 
 会話から判明した項目のみをhearingItemsに含めてください。値は会話から読み取れる簡潔な内容にしてください。
-また、現時点での3社（損保ジャパン/東京海上日動/三井住友海上）の推奨スコア(0-100)と分析コメントを返してください。
 
 必ず以下のJSON形式で返答してください（JSON以外は出力しないでください）:
 {
-  "hearingItems": { "a1": "値", "a7": "値" },
-  "scores": { "sompo": 30, "tokio": 35, "mitsui": 35 },
-  "customerProfile": { "driver": "運転者情報", "vehicle": "車両情報", "purpose": "使用目的", "priority": "重視ポイント" },
-  "analysisText": "現時点の分析コメント（3-5文）",
-  "topInsurer": "sompo or tokio or mitsui",
-  "topReason": "最も推奨する理由（2-3文）"
+  "hearingItems": { "fam_self_name": "値", "inc_salary_self": "値" },
+  "customerProfile": { "household": "世帯構成サマリ", "lifeStage": "ライフステージ", "primaryGoal": "主な関心事", "priority": "重視ポイント" },
+  "analysisText": "現時点のヒアリング進捗と気付き(3-5文)"
 }`;
 
-function ConversationView({ hearingData, setHearingData, recommendationData, setRecommendationData }) {
+function ConversationView({ hearingData, setHearingData, analysisData, setAnalysisData }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isConnected, setIsConnected] = useState(false);
@@ -360,12 +459,9 @@ function ConversationView({ hearingData, setHearingData, recommendationData, set
         if (result.hearingItems) {
           setHearingData(prev => ({ ...prev, ...result.hearingItems }));
         }
-        setRecommendationData({
-          scores: result.scores || { sompo: 0, tokio: 0, mitsui: 0 },
+        setAnalysisData({
           customerProfile: result.customerProfile || {},
           analysisText: result.analysisText || "",
-          topInsurer: result.topInsurer || "",
-          topReason: result.topReason || "",
         });
       }
     } catch (e) {
@@ -696,7 +792,6 @@ function ConversationView({ hearingData, setHearingData, recommendationData, set
         volumeRafRef.current = requestAnimationFrame(monitorVolume);
       };
       monitorVolume();
-
     } catch (error) {
       console.error("Microphone error:", error);
       if (error.name === "NotAllowedError") {
@@ -943,7 +1038,7 @@ function ConversationView({ hearingData, setHearingData, recommendationData, set
                 fontFamily: "'Noto Sans JP', sans-serif",
               }}>
                 Gemini Live API ({GEMINI_MODEL.split("/")[1]})<br />
-                リアルタイム音声会話で保険のヒアリングを行います
+                ライフプラン作成のヒアリングをリアルタイム音声で行います
               </div>
             </div>
           )}
@@ -1077,8 +1172,8 @@ function ConversationView({ hearingData, setHearingData, recommendationData, set
             }}>送信</button>
           </div>
           {isConnected && (
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              {["車両保険について聞く", "家族構成を確認", "現在の不満点を深掘り"].map(s => (
+            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+              {["家族構成を教えてください", "収入を確認したい", "毎月の支出について", "資産状況を伺う", "住宅ローンの状況"].map(s => (
                 <button key={s} onClick={() => setInput(s)} style={{
                   padding: "6px 14px", borderRadius: 20, border: "1px solid #E2E8F0",
                   background: "#F8FAFC", cursor: "pointer", fontSize: 12, color: "#475569",
@@ -1093,21 +1188,19 @@ function ConversationView({ hearingData, setHearingData, recommendationData, set
       {/* Right Sidebar - Hearing Tracker (AI応答後に動的表示) */}
       {showSidebar && (
       <div style={{
-        width: 300, borderLeft: "1px solid #E2E8F0", background: "#fff",
+        width: 320, borderLeft: "1px solid #E2E8F0", background: "#fff",
         overflowY: "auto", padding: "20px 16px",
         animation: "slideInRight 0.4s ease-out",
       }}>
         {(() => {
-          const countA = HEARING_ITEMS_A.filter(item => hearingData[item.id]).length;
-          const countB = HEARING_ITEMS_B.filter(item => hearingData[item.id]).length;
-          const totalFilled = countA + countB;
-          const progressPercent = Math.round((totalFilled / 30) * 100);
+          const totalFilled = ALL_HEARING_ITEMS.filter(item => hearingData[item.id]).length;
+          const progressPercent = TOTAL_ITEMS > 0 ? Math.round((totalFilled / TOTAL_ITEMS) * 100) : 0;
           return (
             <>
               <div style={{ marginBottom: 20 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
-                    意向把握 進捗
+                    ヒアリング進捗
                   </span>
                   <span style={{ fontSize: 12, color: analyzing ? "#3B82F6" : "#94A3B8" }}>
                     {analyzing ? "🔄 分析中..." : "会話から自動判定"}
@@ -1121,61 +1214,50 @@ function ConversationView({ hearingData, setHearingData, recommendationData, set
                   }} />
                 </div>
                 <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 4, textAlign: "right" }}>
-                  {totalFilled}/30 項目取得済
+                  {totalFilled}/{TOTAL_ITEMS} 項目取得済
                 </div>
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 8, letterSpacing: "0.05em" }}>
-                  【A】標準項目 ({countA}/15)
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                  {HEARING_ITEMS_A.map(item => {
-                    const value = hearingData[item.id];
-                    return (
-                      <div key={item.id} title={value || "未取得"} style={{
-                        fontSize: 11, padding: "4px 8px", borderRadius: 6,
-                        background: value ? "#F0FDF4" : "#F8FAFC",
-                        color: value ? "#166534" : "#94A3B8",
-                        border: value ? "1px solid #BBF7D0" : "1px solid #E2E8F0",
+              {HEARING_SECTIONS.map(section => {
+                const sectionItems = section.groups.flatMap(g => g.items);
+                const filled = sectionItems.filter(it => hearingData[it.id]).length;
+                return (
+                  <div key={section.id} style={{ marginBottom: 14 }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 6, marginBottom: 6,
+                    }}>
+                      <span style={{ fontSize: 14 }}>{section.icon}</span>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, color: section.color,
                         fontFamily: "'Noto Sans JP', sans-serif",
-                        fontWeight: value ? 600 : 400,
-                        animation: value ? "fillIn 0.3s ease" : "none",
-                        cursor: "default",
-                      }}>
-                        {item.icon} {item.label}
-                        {value && <span style={{ fontSize: 9, marginLeft: 2 }}>✓</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 8, letterSpacing: "0.05em" }}>
-                  【B】差別化項目 ({countB}/15)
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                  {HEARING_ITEMS_B.map(item => {
-                    const value = hearingData[item.id];
-                    return (
-                      <div key={item.id} title={value || "未取得"} style={{
-                        fontSize: 11, padding: "4px 8px", borderRadius: 6,
-                        background: value ? "#F0FDF4" : "#F8FAFC",
-                        color: value ? "#166534" : "#94A3B8",
-                        border: value ? "1px solid #BBF7D0" : "1px solid #E2E8F0",
-                        fontFamily: "'Noto Sans JP', sans-serif",
-                        fontWeight: value ? 600 : 400,
-                        animation: value ? "fillIn 0.3s ease" : "none",
-                        cursor: "default",
-                      }}>
-                        {item.icon} {item.label}
-                        {value && <span style={{ fontSize: 9, marginLeft: 2 }}>✓</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                      }}>{section.label}</span>
+                      <span style={{ marginLeft: "auto", fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>
+                        {filled}/{sectionItems.length}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {sectionItems.map(item => {
+                        const value = hearingData[item.id];
+                        return (
+                          <div key={item.id} title={value || "未取得"} style={{
+                            fontSize: 10, padding: "3px 6px", borderRadius: 5,
+                            background: value ? section.accent : "#F8FAFC",
+                            color: value ? section.color : "#94A3B8",
+                            border: value ? `1px solid ${section.color}33` : "1px solid #E2E8F0",
+                            fontFamily: "'Noto Sans JP', sans-serif",
+                            fontWeight: value ? 600 : 400,
+                            animation: value ? "fillIn 0.3s ease" : "none",
+                            cursor: "default",
+                          }}>
+                            {item.icon} {item.label}
+                            {value && <span style={{ fontSize: 9, marginLeft: 2 }}>✓</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </>
           );
         })()}
@@ -1199,62 +1281,42 @@ function ConversationView({ hearingData, setHearingData, recommendationData, set
           </div>
         </div>
 
-        {/* Recommendation Preview */}
-        {(() => {
-          const scores = recommendationData?.scores || { sompo: 0, tokio: 0, mitsui: 0 };
-          const hasScores = scores.sompo > 0 || scores.tokio > 0 || scores.mitsui > 0;
-          return (
-            <div style={{
-              marginTop: 16, padding: 16, borderRadius: 12,
-              background: "linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%)",
-              border: "1px solid #BBF7D0",
-            }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#166534", marginBottom: 8 }}>
-                🎯 推奨傾向{hasScores ? "" : "（会話後に更新）"}
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {Object.entries(INSURERS).map(([key, ins]) => (
-                  <div key={key} style={{ flex: 1, textAlign: "center" }}>
-                    <ProgressRing percent={scores[key] || 0} color={ins.color} size={48} stroke={4} />
-                    <div style={{ fontSize: 10, fontWeight: 600, color: ins.color, marginTop: 4 }}>
-                      {ins.short}
-                    </div>
-                    {hasScores && (
-                      <div style={{ fontSize: 9, color: "#64748B", marginTop: 2 }}>{scores[key]}%</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div style={{
-                fontSize: 10, color: "#64748B", marginTop: 8, lineHeight: 1.5,
-                fontFamily: "'Noto Sans JP', sans-serif",
-              }}>
-                {hasScores && recommendationData?.topInsurer
-                  ? `${INSURERS[recommendationData.topInsurer]?.name || ""}が現時点で最有力`
-                  : "会話を進めると推奨傾向が表示されます"}
-              </div>
+        {/* AI Analysis Preview */}
+        {analysisData?.analysisText && (
+          <div style={{
+            marginTop: 16, padding: 14, borderRadius: 12,
+            background: "linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)",
+            border: "1px solid #BFDBFE",
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#1E40AF", marginBottom: 6 }}>
+              🧠 AI 分析コメント
             </div>
-          );
-        })()}
+            <div style={{
+              fontSize: 11, color: "#334155", lineHeight: 1.6,
+              fontFamily: "'Noto Sans JP', sans-serif",
+            }}>
+              {analysisData.analysisText}
+            </div>
+          </div>
+        )}
       </div>
       )}
     </div>
   );
 }
 
-// ── Hearing Progress View ──
+// ── Hearing View ──
 
-function HearingView({ hearingData }) {
-  const countA = HEARING_ITEMS_A.filter(item => hearingData[item.id]).length;
-  const countB = HEARING_ITEMS_B.filter(item => hearingData[item.id]).length;
-  const totalFilled = countA + countB;
+function HearingView({ hearingData, analysisData }) {
+  const totalFilled = ALL_HEARING_ITEMS.filter(item => hearingData[item.id]).length;
   const hasAnyData = totalFilled > 0;
+  const profile = analysisData?.customerProfile || {};
 
   return (
     <div style={{ padding: "32px 48px", background: "#FAFBFD", minHeight: "calc(100vh - 64px)", overflowY: "auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
-          ヒアリングシート
+          ライフプラン ヒアリングシート
         </h2>
         {hasAnyData && (
           <div style={{
@@ -1262,13 +1324,13 @@ function HearingView({ hearingData }) {
             background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
             color: "#fff", fontSize: 13, fontWeight: 700,
           }}>
-            {totalFilled}/30 項目取得済
+            {totalFilled}/{TOTAL_ITEMS} 項目取得済
           </div>
         )}
       </div>
       <p style={{ fontSize: 13, color: "#64748B", marginBottom: 28, fontFamily: "'Noto Sans JP', sans-serif" }}>
         {hasAnyData
-          ? "会話から自動抽出された意向情報です。緑色の項目は取得済みです。"
+          ? "会話から自動抽出されたヒアリング情報です。緑色の項目は取得済みです。"
           : "まだヒアリング情報がありません。会話タブで音声会話を開始すると、自動で情報が抽出されます。"}
       </p>
 
@@ -1286,539 +1348,125 @@ function HearingView({ hearingData }) {
         </div>
       )}
 
-      {hasAnyData && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-          {/* Section A */}
-          <div style={{
-            background: "#fff", borderRadius: 16, padding: 24,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)", border: "1px solid #E2E8F0",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <div style={{
-                padding: "4px 10px", borderRadius: 6,
-                background: "#EFF6FF", color: "#2563EB",
-                fontSize: 12, fontWeight: 700,
-              }}>A</div>
-              <span style={{ fontWeight: 700, fontSize: 15, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
-                標準的な意向確認項目
-              </span>
-              <span style={{ marginLeft: "auto", fontSize: 12, color: "#3B82F6", fontWeight: 700 }}>
-                {countA}/15
-              </span>
-            </div>
-            {HEARING_ITEMS_A.map(item => {
-              const value = hearingData[item.id];
-              return (
-                <div key={item.id} style={{
-                  display: "flex", alignItems: "center", padding: "10px 12px",
-                  borderRadius: 8, marginBottom: 4,
-                  background: value ? "#F0FDF4" : "#FAFBFD",
-                  border: value ? "1px solid #BBF7D0" : "1px solid transparent",
-                  transition: "all 0.3s",
-                  animation: value ? "fadeIn 0.4s ease" : "none",
-                }}>
-                  <span style={{ fontSize: 16, marginRight: 8, width: 24 }}>{item.icon}</span>
-                  <span style={{
-                    fontSize: 13, fontWeight: value ? 600 : 400,
-                    color: value ? "#166534" : "#94A3B8",
-                    fontFamily: "'Noto Sans JP', sans-serif", flex: 1,
-                  }}>{item.label}</span>
-                  {value ? (
-                    <span style={{ fontSize: 12, color: "#15803D", fontWeight: 500, fontFamily: "'Noto Sans JP', sans-serif" }}>
-                      {value}
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: 11, color: "#CBD5E1" }}>未取得</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Section B */}
-          <div style={{
-            background: "#fff", borderRadius: 16, padding: 24,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)", border: "1px solid #E2E8F0",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <div style={{
-                padding: "4px 10px", borderRadius: 6,
-                background: "#FFF7ED", color: "#EA580C",
-                fontSize: 12, fontWeight: 700,
-              }}>B</div>
-              <span style={{ fontWeight: 700, fontSize: 15, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
-                差別化のための深掘り項目
-              </span>
-              <span style={{ marginLeft: "auto", fontSize: 12, color: "#EA580C", fontWeight: 700 }}>
-                {countB}/15
-              </span>
-            </div>
-            {HEARING_ITEMS_B.map(item => {
-              const value = hearingData[item.id];
-              return (
-                <div key={item.id} style={{
-                  display: "flex", alignItems: "center", padding: "10px 12px",
-                  borderRadius: 8, marginBottom: 4,
-                  background: value ? "#F0FDF4" : "#FAFBFD",
-                  border: value ? "1px solid #BBF7D0" : "1px solid transparent",
-                  transition: "all 0.3s",
-                  animation: value ? "fadeIn 0.4s ease" : "none",
-                }}>
-                  <span style={{ fontSize: 16, marginRight: 8, width: 24 }}>{item.icon}</span>
-                  <span style={{
-                    fontSize: 13, fontWeight: value ? 600 : 400,
-                    color: value ? "#166534" : "#94A3B8",
-                    fontFamily: "'Noto Sans JP', sans-serif", flex: 1,
-                  }}>{item.label}</span>
-                  {value ? (
-                    <span style={{ fontSize: 12, color: "#15803D", fontWeight: 500, fontFamily: "'Noto Sans JP', sans-serif" }}>
-                      {value}
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: 11, color: "#CBD5E1" }}>未取得</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Comparison View ──
-
-function ComparisonView() {
-  const categories = [
-    {
-      name: "人身傷害 基本補償",
-      items: [
-        { label: "入通院定額給付金", sompo: "5日以上で10万円", tokio: "5日以上で10万円または20万円", mitsui: "1日以上5日未満：1万円、5日以上：10万円（倍額払で2倍可）", highlight: "mitsui" },
-        { label: "入院生活サポート費用保険金", sompo: "180日以内、日額15,000円限度 ✨", tokio: "記載なし", mitsui: "記載なし", highlight: "sompo" },
-        { label: "死亡・後遺障害定額給付金特約", sompo: "あり（死亡：保険金額全額、後遺障害：4～100％）", tokio: "記載なし", mitsui: "搭乗者傷害（死亡・後遺障害）特約あり", highlight: "sompo" },
-        { label: "被保険者範囲（他車搭乗中）", sompo: "記載なし", tokio: "記名被保険者および家族は他車搭乗中も補償 ✨", mitsui: "自動車事故特約セットで他車搭乗中も補償", highlight: "tokio" },
-      ],
-    },
-    {
-      name: "人身傷害 交通乗用具事故特約",
-      items: [
-        { label: "特約名称", sompo: "人身傷害交通乗用具事故特約", tokio: "人身傷害乗用具事故補償特約", mitsui: "自転車・車いす・ベビーカー・シニアカー事故傷害定額払特約", highlight: "" },
-        { label: "特約の概要", sompo: "他の自動車・交通乗用具搭乗中や歩行中の事故に拡大 ✨", tokio: "契約車以外の乗用具搭乗中や歩行中の接触事故も補償", mitsui: "自転車等搭乗中事故で傷害定額払保険金を支払", highlight: "sompo" },
-        { label: "対象乗用具の範囲", sompo: "自動車、自転車、車椅子、ベビーカー、電車、ロープウェー、航空機、船舶、エレベーター等 ✨", tokio: "契約車以外の車、自転車、トロリーバス、そり、車いす、ベビーカー等", mitsui: "自転車・車いす・ベビーカー・シニアカー", highlight: "sompo" },
-      ],
-    },
-    {
-      name: "人身傷害 入院時諸費用特約",
-      items: [
-        { label: "特約名称", sompo: "人身傷害入院時諸費用特約", tokio: "入院時選べるアシスト特約", mitsui: "入院・後遺障害時における人身傷害諸費用特約", highlight: "" },
-        { label: "ヘルパー費用（家事・介護）", sompo: "家事・介護のヘルパー費用", tokio: "ホームヘルパー派遣", mitsui: "ホーム/介護ヘルパー雇入費用：各1日2万円限度 ✨", highlight: "mitsui" },
-        { label: "保育施設預け入れ等費用", sompo: "保育施設預け入れ等費用", tokio: "記載なし", mitsui: "ベビーシッター・保育施設：合計1日2万円限度 ✨", highlight: "mitsui" },
-        { label: "ペット預け入れ等費用", sompo: "ペット預け入れ等費用", tokio: "記載なし", mitsui: "ペットシッター・専用施設：合計1日2万円限度 ✨", highlight: "mitsui" },
-        { label: "退院時諸費用", sompo: "5日以上入院の場合支給 ✨", tokio: "記載なし", mitsui: "記載なし", highlight: "sompo" },
-      ],
-    },
-    {
-      name: "その他の諸費用",
-      items: [
-        { label: "転院移送費用", sompo: "記載なし", tokio: "記載なし", mitsui: "転院1回分かつ100万円限度 ✨", highlight: "mitsui" },
-        { label: "差額ベッド費用", sompo: "記載なし", tokio: "差額ベッド代提供", mitsui: "1日2万円限度 ✨", highlight: "mitsui" },
-        { label: "リハビリテーション訓練等保険金", sompo: "記載なし", tokio: "記載なし", mitsui: "1名につき120万円 ✨", highlight: "mitsui" },
-        { label: "福祉機器等取得費用保険金", sompo: "記載なし", tokio: "記載なし", mitsui: "1名につき500万円限度、住宅改造500万円限度 ✨", highlight: "mitsui" },
-      ],
-    },
-    {
-      name: "車両新価特約",
-      items: [
-        { label: "支払要件", sompo: "全損または修理費が新車価格の50％以上", tokio: "修理不能、車両保険金額以上、または協定新価の50％以上", mitsui: "新車保険金額の50％以上の損害等", highlight: "" },
-        { label: "再取得時諸費用保険金", sompo: "新車価格の20％（40万円限度）or 20万円の高い方 ✨", tokio: "協定新価×20％（上限40万円、下限20万円）", mitsui: "記載なし", highlight: "sompo" },
-        { label: "代替自動車の再取得・修理期間", sompo: "事故翌日から1年以内 ✨", tokio: "記載なし", mitsui: "記載なし", highlight: "sompo" },
-      ],
-    },
-    {
-      name: "ロードアシスタンス特約",
-      items: [
-        { label: "セット要件", sompo: "すべてのご契約（自動セット）", tokio: "自動セット（車両保険なしでも可）", mitsui: "原則すべてのご契約に自動セット", highlight: "" },
-        { label: "故障も支払対象か", sompo: "あり", tokio: "あり", mitsui: "あり", highlight: "" },
-        { label: "運搬費用", sompo: "事前連絡あり：無制限、なし：15万円限度", tokio: "15万円限度（事前承認時は無制限）", mitsui: "距離無制限 ✨", highlight: "mitsui" },
-        { label: "臨時宿泊費用", sompo: "2万円限度／1被保険者", tokio: "記載なし", mitsui: "同乗者全員分・1人1.5万円限度 ✨", highlight: "mitsui" },
-        { label: "臨時帰宅（移動）費用", sompo: "2万円限度／1被保険者", tokio: "代替交通費用5万円限度（タクシー3万円限度）", mitsui: "同乗者全員分・1人2万円限度 ✨", highlight: "mitsui" },
-        { label: "引取費用", sompo: "15万円限度", tokio: "記載なし", mitsui: "15万円限度", highlight: "" },
-        { label: "レンタカー費用", sompo: "記載なし", tokio: "補償日額限度（事故30日、故障15日） ✨", mitsui: "記載なし", highlight: "tokio" },
-      ],
-    },
-    {
-      name: "個人賠償責任特約",
-      items: [
-        { label: "示談代行", sompo: "記載なし", tokio: "あり ✨", mitsui: "日本国内事故のみ", highlight: "tokio" },
-        { label: "国内保険金額", sompo: "日本国内：無制限", tokio: "国内：無制限", mitsui: "日本国内：無制限", highlight: "" },
-        { label: "国外の補償", sompo: "1事故につき1億円", tokio: "1億円限度", mitsui: "3億円 ✨", highlight: "mitsui" },
-        { label: "受託物に対する補償", sompo: "記載なし", tokio: "他人から借りた物の損害も補償 ✨", mitsui: "1個または1組あたり100万円限度", highlight: "tokio" },
-        { label: "電車等運行不能賠償補償", sompo: "あり", tokio: "記載なし", mitsui: "あり", highlight: "" },
-      ],
-    },
-  ];
-
-  return (
-    <div style={{ padding: "32px 48px", background: "#FAFBFD", minHeight: "calc(100vh - 64px)", overflowY: "auto" }}>
-      <h2 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", marginBottom: 4, fontFamily: "'Noto Sans JP', sans-serif" }}>
-        3社比較ダッシュボード
-      </h2>
-      <p style={{ fontSize: 13, color: "#64748B", marginBottom: 28, fontFamily: "'Noto Sans JP', sans-serif" }}>
-        保険商品比較表に基づく3社の差別化ポイント。背景色は各項目の最優位社を示します。
-      </p>
-
-      {/* Insurer Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
-        {Object.entries(INSURERS).map(([key, ins]) => (
-          <div key={key} style={{
-            background: "#fff", borderRadius: 16, padding: 20, position: "relative",
-            border: `2px solid ${ins.color}20`, overflow: "hidden",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-          }}>
-            <div style={{
-              position: "absolute", top: 0, left: 0, right: 0, height: 4,
-              background: ins.color,
-            }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <span style={{ fontSize: 28 }}>{ins.logo}</span>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: ins.color, fontFamily: "'Noto Sans JP', sans-serif" }}>
-                  {ins.name}
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-              {ins.strengths.map(s => (
-                <span key={s} style={{
-                  fontSize: 11, padding: "4px 10px", borderRadius: 20,
-                  background: ins.accent, color: ins.color, fontWeight: 500,
-                  fontFamily: "'Noto Sans JP', sans-serif",
-                }}>{s}</span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Comparison Tables */}
-      {categories.map(cat => (
-        <div key={cat.name} style={{
-          background: "#fff", borderRadius: 16, marginBottom: 20, overflow: "hidden",
-          border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-        }}>
-          <div style={{
-            padding: "14px 24px", background: "#F8FAFC",
-            borderBottom: "1px solid #E2E8F0",
-          }}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
-              {cat.name}
-            </span>
-          </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ width: "25%", padding: "12px 24px", textAlign: "left", fontSize: 12, color: "#64748B",
-                  fontWeight: 600, borderBottom: "1px solid #E2E8F0", fontFamily: "'Noto Sans JP', sans-serif" }}>項目</th>
-                {Object.entries(INSURERS).map(([key, ins]) => (
-                  <th key={key} style={{
-                    width: "25%", padding: "12px 16px", textAlign: "center", fontSize: 12,
-                    color: ins.color, fontWeight: 700, borderBottom: "1px solid #E2E8F0",
-                    fontFamily: "'Noto Sans JP', sans-serif",
-                  }}>{ins.logo} {ins.short}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {cat.items.map((item, i) => (
-                <tr key={i}>
-                  <td style={{
-                    padding: "12px 24px", fontSize: 13, color: "#334155",
-                    borderBottom: "1px solid #F1F5F9", fontFamily: "'Noto Sans JP', sans-serif",
-                  }}>{item.label}</td>
-                  {["sompo", "tokio", "mitsui"].map(key => (
-                    <td key={key} style={{
-                      padding: "12px 16px", textAlign: "center", fontSize: 13,
-                      borderBottom: "1px solid #F1F5F9",
-                      background: item.highlight === key ? INSURERS[key].accent : "transparent",
-                      color: item.highlight === key ? INSURERS[key].color : "#475569",
-                      fontWeight: item.highlight === key ? 700 : 400,
-                      fontFamily: "'Noto Sans JP', sans-serif",
-                    }}>{item[key]}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Recommendation View ──
-
-function RecommendationView({ recommendationData }) {
-  const [selectedRec, setSelectedRec] = useState("推奨01");
-  const rec = RECOMMENDATIONS[selectedRec];
-  const insurer = INSURERS[rec.insurer];
-
-  const hasAnalysis = recommendationData && recommendationData.analysisText;
-  const scores = recommendationData?.scores || { sompo: 0, tokio: 0, mitsui: 0 };
-  const profile = recommendationData?.customerProfile || {};
-  const topInsurer = recommendationData?.topInsurer;
-  const topInsurerInfo = topInsurer ? INSURERS[topInsurer] : null;
-
-  return (
-    <div style={{ padding: "32px 48px", background: "#FAFBFD", minHeight: "calc(100vh - 64px)", overflowY: "auto" }}>
-      <h2 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", marginBottom: 4, fontFamily: "'Noto Sans JP', sans-serif" }}>
-        推奨理由 & トークスクリプト
-      </h2>
-      <p style={{ fontSize: 13, color: "#64748B", marginBottom: 28, fontFamily: "'Noto Sans JP', sans-serif" }}>
-        {hasAnalysis
-          ? "会話分析に基づく推奨結果です。AI分析と推奨パターンを確認できます。"
-          : "ヒアリング結果から最適な推奨パターンを選択。会話を進めるとAI分析結果が表示されます。"}
-      </p>
-
-      {/* AI Analysis Result - 会話分析結果 */}
-      {hasAnalysis && (
+      {hasAnyData && analysisData?.analysisText && (
         <div style={{
           background: "linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)",
-          borderRadius: 16, padding: 28, marginBottom: 24,
+          borderRadius: 16, padding: 24, marginBottom: 24,
           border: "1px solid #BFDBFE", boxShadow: "0 4px 20px rgba(59,130,246,0.08)",
-          animation: "fadeIn 0.5s ease",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
             <div style={{
-              width: 40, height: 40, borderRadius: 12,
+              width: 36, height: 36, borderRadius: 10,
               background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 18, fontWeight: 700,
+              color: "#fff", fontSize: 16, fontWeight: 700,
             }}>AI</div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#1E3A5F", fontFamily: "'Noto Sans JP', sans-serif" }}>
-                AI分析結果
-              </div>
-              <div style={{ fontSize: 11, color: "#64748B" }}>会話内容をリアルタイム分析</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1E3A5F", fontFamily: "'Noto Sans JP', sans-serif" }}>
+              AI 分析コメント
             </div>
-            {topInsurerInfo && (
-              <div style={{
-                marginLeft: "auto", padding: "8px 20px", borderRadius: 10,
-                background: topInsurerInfo.color, color: "#fff",
-                fontWeight: 700, fontSize: 13, fontFamily: "'Noto Sans JP', sans-serif",
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 14 }}>
+            {[
+              { label: "世帯構成", value: profile.household || "未取得" },
+              { label: "ライフステージ", value: profile.lifeStage || "未取得" },
+              { label: "主な関心事", value: profile.primaryGoal || "未取得" },
+              { label: "重視ポイント", value: profile.priority || "未取得" },
+            ].map(item => (
+              <div key={item.label} style={{
+                background: "#fff", borderRadius: 10, padding: "10px 14px",
+                border: "1px solid #E2E8F0",
               }}>
-                {topInsurerInfo.logo} {topInsurerInfo.name}を推奨
-              </div>
-            )}
-          </div>
-
-          {/* Scores */}
-          <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
-            {Object.entries(INSURERS).map(([key, ins]) => {
-              const score = scores[key] || 0;
-              const isTop = key === topInsurer;
-              return (
-                <div key={key} style={{
-                  flex: 1, background: "#fff", borderRadius: 12, padding: 16,
-                  border: isTop ? `2px solid ${ins.color}` : "1px solid #E2E8F0",
-                  textAlign: "center", position: "relative",
-                  boxShadow: isTop ? `0 4px 12px ${ins.color}20` : "none",
-                }}>
-                  {isTop && (
-                    <div style={{
-                      position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)",
-                      padding: "2px 12px", borderRadius: 10,
-                      background: ins.color, color: "#fff",
-                      fontSize: 10, fontWeight: 700,
-                    }}>最推奨</div>
-                  )}
-                  <ProgressRing percent={score} color={ins.color} size={64} stroke={5} />
-                  <div style={{ fontSize: 20, fontWeight: 800, color: ins.color, marginTop: 4 }}>{score}%</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: ins.color }}>{ins.name}</div>
+                <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 4, fontFamily: "'Noto Sans JP', sans-serif" }}>
+                  {item.label}
                 </div>
-              );
-            })}
+                <div style={{
+                  fontSize: 13, fontWeight: 600,
+                  color: item.value === "未取得" ? "#CBD5E1" : "#1E293B",
+                  fontFamily: "'Noto Sans JP', sans-serif",
+                }}>
+                  {item.value}
+                </div>
+              </div>
+            ))}
           </div>
-
-          {/* Analysis Text */}
           <div style={{
-            padding: "16px 20px", borderRadius: 12,
+            padding: "14px 18px", borderRadius: 10,
             background: "#fff", border: "1px solid #E2E8F0",
-            fontSize: 14, lineHeight: 1.9, color: "#334155",
+            fontSize: 13, lineHeight: 1.9, color: "#334155",
             fontFamily: "'Noto Sans JP', sans-serif",
           }}>
-            {recommendationData.analysisText}
-          </div>
-
-          {/* Top Reason */}
-          {recommendationData.topReason && (
-            <div style={{
-              marginTop: 12, padding: "12px 20px", borderRadius: 12,
-              background: topInsurerInfo ? `${topInsurerInfo.color}10` : "#F8FAFC",
-              border: `1px solid ${topInsurerInfo ? `${topInsurerInfo.color}30` : "#E2E8F0"}`,
-              fontSize: 13, lineHeight: 1.8, color: "#1E293B",
-              fontFamily: "'Noto Sans JP', sans-serif",
-            }}>
-              <strong style={{ color: topInsurerInfo?.color }}>推奨理由：</strong>{recommendationData.topReason}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Customer Profile Summary - 動的データ */}
-      <div style={{
-        background: "#fff", borderRadius: 16, padding: 24, marginBottom: 24,
-        border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-      }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 12, letterSpacing: "0.05em" }}>
-          👤 お客様プロファイル
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
-          {[
-            { label: "運転者", value: profile.driver || "未取得" },
-            { label: "車両", value: profile.vehicle || "未取得" },
-            { label: "使用目的", value: profile.purpose || "未取得" },
-            { label: "重視ポイント", value: profile.priority || "未取得" },
-          ].map(item => (
-            <div key={item.label}>
-              <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 4, fontFamily: "'Noto Sans JP', sans-serif" }}>
-                {item.label}
-              </div>
-              <div style={{
-                fontSize: 14, fontWeight: 600,
-                color: item.value === "未取得" ? "#CBD5E1" : "#1E293B",
-                fontFamily: "'Noto Sans JP', sans-serif",
-              }}>
-                {item.value}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* No analysis yet - empty state */}
-      {!hasAnalysis && (
-        <div style={{
-          textAlign: "center", padding: "60px 20px", color: "#94A3B8",
-          background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0",
-        }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>🧠</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#64748B", fontFamily: "'Noto Sans JP', sans-serif", marginBottom: 8 }}>
-            AI分析結果はここに表示されます
-          </div>
-          <div style={{ fontSize: 13, color: "#94A3B8", fontFamily: "'Noto Sans JP', sans-serif" }}>
-            会話タブでお客様との対話を進めると、自動で分析が実行されます
+            {analysisData.analysisText}
           </div>
         </div>
       )}
 
-      {/* 既存の推奨パターン一覧（常に表示） */}
-      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 24, marginTop: 24 }}>
-        {/* Recommendation Selector */}
-        <div style={{
-          background: "#fff", borderRadius: 16, padding: 20,
-          border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-        }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 12, letterSpacing: "0.05em" }}>
-            推奨パターン一覧
-          </div>
-          {Object.entries(RECOMMENDATIONS).map(([key, r]) => {
-            const ins = INSURERS[r.insurer];
-            const isActive = key === selectedRec;
-            const isAiTop = topInsurer && r.insurer === topInsurer;
+      {hasAnyData && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          {HEARING_SECTIONS.map(section => {
+            const sectionItems = section.groups.flatMap(g => g.items);
+            const filled = sectionItems.filter(it => hearingData[it.id]).length;
             return (
-              <button key={key} onClick={() => setSelectedRec(key)}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 12px", borderRadius: 10, marginBottom: 4,
-                  background: isActive ? ins.accent : "transparent",
-                  border: isActive ? `1px solid ${ins.color}40` : "1px solid transparent",
-                  cursor: "pointer", textAlign: "left", transition: "all 0.2s",
-                }}>
-                <span style={{
-                  fontSize: 10, padding: "2px 6px", borderRadius: 4,
-                  background: ins.color, color: "#fff", fontWeight: 700,
-                  fontFamily: "monospace", flexShrink: 0,
-                }}>{key.replace("推奨", "")}</span>
-                <div>
+              <div key={section.id} style={{
+                background: "#fff", borderRadius: 16, padding: 24,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04)", border: "1px solid #E2E8F0",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                   <div style={{
-                    fontSize: 13, fontWeight: isActive ? 700 : 500,
-                    color: isActive ? ins.color : "#475569",
-                    fontFamily: "'Noto Sans JP', sans-serif",
-                  }}>{r.title}</div>
-                  <div style={{ fontSize: 10, color: "#94A3B8" }}>{ins.name}</div>
+                    padding: "4px 10px", borderRadius: 6,
+                    background: section.accent, color: section.color,
+                    fontSize: 14, fontWeight: 700,
+                  }}>{section.icon}</div>
+                  <span style={{ fontWeight: 700, fontSize: 15, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
+                    {section.label}
+                  </span>
+                  <span style={{ marginLeft: "auto", fontSize: 12, color: section.color, fontWeight: 700 }}>
+                    {filled}/{sectionItems.length}
+                  </span>
                 </div>
-                {isAiTop && (
-                  <span style={{
-                    marginLeft: "auto", fontSize: 10, padding: "2px 8px",
-                    borderRadius: 20, background: "#FEF3C7", color: "#92400E", fontWeight: 600,
-                  }}>AI推奨</span>
-                )}
-              </button>
+
+                {section.groups.map(group => (
+                  <div key={group.label} style={{ marginBottom: 14 }}>
+                    <div style={{
+                      fontSize: 11, fontWeight: 700, color: "#64748B",
+                      marginBottom: 6, letterSpacing: "0.05em",
+                      fontFamily: "'Noto Sans JP', sans-serif",
+                    }}>
+                      {group.label}
+                    </div>
+                    {group.items.map(item => {
+                      const value = hearingData[item.id];
+                      return (
+                        <div key={item.id} style={{
+                          display: "flex", alignItems: "center", padding: "8px 10px",
+                          borderRadius: 8, marginBottom: 3,
+                          background: value ? "#F0FDF4" : "#FAFBFD",
+                          border: value ? "1px solid #BBF7D0" : "1px solid transparent",
+                          transition: "all 0.3s",
+                          animation: value ? "fadeIn 0.4s ease" : "none",
+                        }}>
+                          <span style={{ fontSize: 14, marginRight: 6, width: 20 }}>{item.icon}</span>
+                          <span style={{
+                            fontSize: 12, fontWeight: value ? 600 : 400,
+                            color: value ? "#166534" : "#94A3B8",
+                            fontFamily: "'Noto Sans JP', sans-serif", flex: 1,
+                          }}>{item.label}</span>
+                          {value ? (
+                            <span style={{ fontSize: 11, color: "#15803D", fontWeight: 500, fontFamily: "'Noto Sans JP', sans-serif", marginLeft: 6, textAlign: "right", maxWidth: "50%" }}>
+                              {value}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 10, color: "#CBD5E1" }}>未取得</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             );
           })}
         </div>
-
-        {/* Selected Recommendation Detail */}
-        <div>
-          <div style={{
-            borderRadius: 16, overflow: "hidden",
-            border: `2px solid ${insurer.color}30`,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
-            marginBottom: 20,
-          }}>
-            <div style={{
-              padding: "24px 32px", color: "#fff",
-              background: `linear-gradient(135deg, ${insurer.color}, ${insurer.color}CC)`,
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                <span style={{ fontSize: 32 }}>{insurer.logo}</span>
-                <div>
-                  <div style={{ fontSize: 12, opacity: 0.8 }}>{selectedRec}</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Noto Sans JP', sans-serif" }}>
-                    {insurer.name}を推奨
-                  </div>
-                </div>
-                <div style={{
-                  marginLeft: "auto", padding: "8px 20px", borderRadius: 10,
-                  background: "rgba(255,255,255,0.2)", fontWeight: 700, fontSize: 14,
-                  backdropFilter: "blur(10px)",
-                }}>
-                  {rec.title}
-                </div>
-              </div>
-            </div>
-            <div style={{ background: "#fff", padding: "28px 32px" }}>
-              <div style={{
-                fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 12, letterSpacing: "0.05em",
-              }}>
-                📋 推奨トークスクリプト
-              </div>
-              <div style={{
-                padding: "20px 24px", borderRadius: 12,
-                background: "#F8FAFC", border: "1px solid #E2E8F0",
-                fontSize: 15, lineHeight: 2, color: "#1E293B",
-                fontFamily: "'Noto Sans JP', sans-serif",
-              }}>
-                「{rec.desc}」
-              </div>
-              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button style={{
-                  padding: "10px 24px", borderRadius: 10, border: "none",
-                  background: insurer.color, color: "#fff", fontWeight: 600,
-                  fontSize: 13, cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif",
-                }}>📎 提案書に反映</button>
-                <button style={{
-                  padding: "10px 24px", borderRadius: 10,
-                  border: `1px solid ${insurer.color}40`,
-                  background: "transparent", color: insurer.color, fontWeight: 600,
-                  fontSize: 13, cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif",
-                }}>📄 PDF出力</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1828,7 +1476,7 @@ function RecommendationView({ recommendationData }) {
 export default function InsuranceAdvisor() {
   const [currentView, setCurrentView] = useState("conversation");
   const [hearingData, setHearingData] = useState({});
-  const [recommendationData, setRecommendationData] = useState(null);
+  const [analysisData, setAnalysisData] = useState(null);
 
   return (
     <div style={{ fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif", minHeight: "100vh", background: "#FAFBFD" }}>
@@ -1848,10 +1496,17 @@ export default function InsuranceAdvisor() {
         button:hover { opacity: 0.9; }
       `}</style>
       <Header currentView={currentView} setCurrentView={setCurrentView} />
-      {currentView === "conversation" && <ConversationView hearingData={hearingData} setHearingData={setHearingData} recommendationData={recommendationData} setRecommendationData={setRecommendationData} />}
-      {currentView === "hearing" && <HearingView hearingData={hearingData} />}
-      {currentView === "comparison" && <ComparisonView />}
-      {currentView === "recommendation" && <RecommendationView recommendationData={recommendationData} />}
+      {currentView === "conversation" && (
+        <ConversationView
+          hearingData={hearingData}
+          setHearingData={setHearingData}
+          analysisData={analysisData}
+          setAnalysisData={setAnalysisData}
+        />
+      )}
+      {currentView === "hearing" && (
+        <HearingView hearingData={hearingData} analysisData={analysisData} />
+      )}
     </div>
   );
 }
