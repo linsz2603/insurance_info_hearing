@@ -13,7 +13,7 @@ const HEARING_SECTIONS = [
       {
         label: "ご本人",
         items: [
-          { id: "fam_self_name", label: "氏名・続柄", icon: "👤" },
+          { id: "fam_self_name", label: "氏名", icon: "👤" },
           { id: "fam_self_gender", label: "性別", icon: "⚧" },
           { id: "fam_self_birth", label: "生年月日", icon: "🎂" },
           { id: "fam_self_occupation", label: "職業・勤務先区分", icon: "💼" },
@@ -25,7 +25,7 @@ const HEARING_SECTIONS = [
       {
         label: "配偶者",
         items: [
-          { id: "fam_spouse_name", label: "氏名・続柄", icon: "👤" },
+          { id: "fam_spouse_name", label: "氏名", icon: "👤" },
           { id: "fam_spouse_gender", label: "性別", icon: "⚧" },
           { id: "fam_spouse_birth", label: "生年月日", icon: "🎂" },
           { id: "fam_spouse_occupation", label: "職業・勤務先区分", icon: "💼" },
@@ -38,7 +38,9 @@ const HEARING_SECTIONS = [
         label: "お子様",
         items: [
           { id: "fam_child_count", label: "人数", icon: "👶" },
-          { id: "fam_child_names", label: "氏名・生年月日", icon: "📝" },
+          { id: "fam_child_names", label: "氏名", icon: "📝" },
+          { id: "fam_child_birth", label: "生年月日", icon: "🎂" },
+          { id: "fam_child_gender", label: "性別", icon: "⚧" },
           { id: "fam_child_edu", label: "進学プラン（公立/私立・自宅/下宿）", icon: "🎓" },
           { id: "fam_child_independence", label: "独立予定年齢", icon: "🚀" },
         ],
@@ -218,20 +220,57 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 const SYSTEM_INSTRUCTION = `あなたはファイナンシャルプランニングのAIヒアリングアドバイザーです。日本語のみで応答してください。英語や内部思考は出力しないでください。
 
-【応答ルール】
+【絶対守るべき応答ルール】
+- 1回の応答では必ず「1つの項目についての1つの質問」だけにしてください。
+- 「氏名と性別」「続柄と性別」のように2つの項目を1問でまとめて聞くことは絶対に禁止です。必ず1項目ずつ分けて質問してください。
 - 1回の応答は2〜3文以内に収めてください。短く簡潔に話してください。
-- 長い説明が必要な場合は、複数のターンに分けて話してください。
-- 一度に全てを説明せず、1つのポイントだけ伝えてから相手の反応を待ってください。
+- 「〜は？」「〜も？」「あと〜は？」のように質問を連ねないでください。必ず1問ずつ区切ってください。
+- お客様が回答したら、その内容を短く受け止めてから、次の1問だけを聞いてください。
+- 続柄（本人／配偶者／お子様）は役割で明らかなので、質問しないでください。
 
-【ヒアリング目的】
-お客様の家計・ライフプラン作成のため、自然な会話で以下5領域の情報を聞き出してください：
-1. 家族構成・基本情報（ご本人・配偶者・お子様それぞれの氏名、続柄、性別、生年月日、職業・勤務先区分、健康状態、リタイア予定年齢、平均余命想定、お子様の進学プラン・独立予定年齢）
+【ヒアリングの進め方】
+必ず以下の順序で、1人ずつ・1項目ずつ聞いてください。前の項目の回答を受け止めてから次の項目に移ってください。
+
+◆ ステップ1: ご本人の情報（全て終わるまで配偶者に移らない）
+  1) 氏名
+  2) 性別
+  3) 生年月日
+  4) 職業・勤務先区分
+  5) 健康状態
+  6) リタイア予定年齢
+  7) 平均余命想定
+
+◆ ステップ2: 配偶者の有無確認 → いれば配偶者の情報（全て終わるまでお子様に移らない）
+  0) まず「奥様はいらっしゃいますか？」（本人が男性の場合）／「ご主人はいらっしゃいますか？」（本人が女性の場合）と、本人の性別に応じた呼称で確認してください。配偶者の性別は本人の性別から推測し、直接「性別は？」とは絶対に聞かないでください（不自然になります）。
+  いる場合：
+  1) 氏名
+  2) 生年月日
+  3) 職業・勤務先区分
+  4) 健康状態
+  5) リタイア予定年齢
+  6) 平均余命想定
+  ※ 配偶者の性別については聞かず、ステップ2-0)の呼称確認で推測した内容を記録として用います。同性パートナーの可能性など特殊な場合にお客様自身から申告があった場合のみ、丁寧に確認してください。
+
+◆ ステップ3: お子様の有無確認 → いれば各お子様の情報
+  0) まず「お子様はいらっしゃいますか？何人ですか？」と確認
+  いる場合、お一人ずつ順番に：
+  1) 氏名
+  2) 生年月日
+  3) 性別
+  4) 進学プラン（公立/私立・自宅/下宿）
+  5) 独立予定年齢
+
+◆ ステップ4以降: 上記が全て終わってから次のセクションへ
+  ②収入情報 → ③支出情報 → ④資産情報 → ⑤負債情報 の順。セクションを跨いで質問を混ぜないでください。
+
+【ヒアリング対象5領域（参考）】
+1. 家族構成・基本情報（上記ステップ1〜3）
 2. 収入情報（給与、賞与、事業・副業、公的年金、企業年金・iDeCo、退職金、不動産収入、配当・運用収入、その他）
 3. 支出情報（基本生活費、住居関連費、教育費、保険料、車両関連費、税金・社会保険料、イベント費用）
 4. 資産情報（預貯金、運用商品、不動産、生命保険）
 5. 負債情報（住宅ローン・自動車ローン等の借入）
 
-一度に多くの質問をせず、1つずつ聞いてください。丁寧で親しみやすく会話してください。最初はご挨拶とヒアリングの流れのご案内から始めてください。`;
+丁寧で親しみやすく会話してください。最初はご挨拶と本日の流れの簡単なご案内をしてから、ステップ1-1）本人のお名前だけを聞いてください。`;
 
 // ── Text Filter: Remove English reasoning/status text, keep only Japanese ──
 
@@ -327,13 +366,13 @@ function Header({ currentView, setCurrentView }) {
           width: 36, height: 36, borderRadius: 10,
           background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 18, fontWeight: 700, color: "#fff",
+          fontSize: 21, fontWeight: 700, color: "#fff",
         }}>FP</div>
-        <span style={{ color: "#F8FAFC", fontSize: 17, fontWeight: 600, letterSpacing: "-0.02em",
+        <span style={{ color: "#F8FAFC", fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em",
           fontFamily: "'Noto Sans JP', 'Hiragino Sans', sans-serif" }}>
           ライフプラン ヒアリングAI
         </span>
-        <span style={{ color: "#64748B", fontSize: 12, marginLeft: 4, fontFamily: "monospace" }}>v0.3 LIVE</span>
+        <span style={{ color: "#64748B", fontSize: 15, marginLeft: 4, fontFamily: "monospace" }}>v0.3 LIVE</span>
       </div>
       <nav style={{ display: "flex", gap: 4 }}>
         {[
@@ -345,11 +384,11 @@ function Header({ currentView, setCurrentView }) {
             border: currentView === tab.key ? "1px solid rgba(59,130,246,0.3)" : "1px solid transparent",
             borderRadius: 10, padding: "8px 16px", cursor: "pointer",
             color: currentView === tab.key ? "#93C5FD" : "#94A3B8",
-            fontFamily: "'Noto Sans JP', sans-serif", fontSize: 13, fontWeight: 500,
+            fontFamily: "'Noto Sans JP', sans-serif", fontSize: 16, fontWeight: 500,
             transition: "all 0.2s", display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
           }}>
             <span>{tab.label}</span>
-            <span style={{ fontSize: 10, opacity: 0.6 }}>{tab.desc}</span>
+            <span style={{ fontSize: 13, opacity: 0.6 }}>{tab.desc}</span>
           </button>
         ))}
       </nav>
@@ -367,7 +406,7 @@ const ANALYSIS_PROMPT = `あなたはファイナンシャルプランニング�
 【1. 家族構成・基本情報】
 - fam_self_name:本人氏名・続柄, fam_self_gender:本人性別, fam_self_birth:本人生年月日, fam_self_occupation:本人職業・勤務先区分, fam_self_health:本人健康状態, fam_self_retire:本人リタイア予定年齢, fam_self_life:本人平均余命想定
 - fam_spouse_name:配偶者氏名・続柄, fam_spouse_gender:配偶者性別, fam_spouse_birth:配偶者生年月日, fam_spouse_occupation:配偶者職業・勤務先区分, fam_spouse_health:配偶者健康状態, fam_spouse_retire:配偶者リタイア予定年齢, fam_spouse_life:配偶者平均余命想定
-- fam_child_count:お子様人数, fam_child_names:お子様氏名・生年月日, fam_child_edu:お子様進学プラン, fam_child_independence:お子様独立予定年齢
+- fam_child_count:お子様人数, fam_child_names:お子様氏名, fam_child_birth:お子様生年月日, fam_child_gender:お子様性別, fam_child_edu:お子様進学プラン, fam_child_independence:お子様独立予定年齢
 
 【2. 収入情報】
 - inc_salary_self:給与収入(本人), inc_salary_spouse:給与収入(配偶者), inc_raise:昇給率, inc_bonus:賞与, inc_business:事業収入・副業収入
@@ -387,6 +426,8 @@ const ANALYSIS_PROMPT = `あなたはファイナンシャルプランニング�
 - deb_type:負債種類, deb_bank:金融機関・借入年月・当初借入額, deb_balance:現在残高, deb_rate:金利・タイプ, deb_payment:毎月返済額・残り期間, deb_bonus:ボーナス返済有無
 
 会話から判明した項目のみをhearingItemsに含めてください。値は会話から読み取れる簡潔な内容にしてください。
+※ 配偶者の性別(fam_spouse_gender)は、AIが「奥様」「ご主人」などの呼称で質問し、お客様が肯定した場合は推測して埋めてください（奥様→女性、ご主人→男性）。
+※ 本人の性別(fam_self_gender)が判明し、配偶者の存在が確認された場合も、一般的には逆の性別として推測して埋めてください（明示の否定がない限り）。
 
 必ず以下のJSON形式で返答してください（JSON以外は出力しないでください）:
 {
@@ -426,6 +467,8 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
   const isSpeakingRef = useRef(false);
   const audioQueueRef = useRef([]);
   const playbackEndTimerRef = useRef(null);
+  const hasGreetedRef = useRef(false);
+  const pendingResumeRef = useRef(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -502,6 +545,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
     nextPlayTimeRef.current = 0;
     isSpeakingRef.current = false;
     audioQueueRef.current = [];
+    hasGreetedRef.current = false;
     setIsConnected(false);
     setIsSpeaking(false);
     setConnecting(false);
@@ -513,6 +557,27 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
       setIsConnected(true);
       setConnecting(false);
       setStatus("接続完了 - マイクをONにして会話を開始");
+
+      // 再開モード：取得済み項目と直近の会話サマリをAIに渡し、続きから質問してもらう
+      if (pendingResumeRef.current) {
+        pendingResumeRef.current = false;
+        const collectedPairs = ALL_HEARING_ITEMS
+          .filter(item => hearingData[item.id])
+          .map(item => `${item.label}=${hearingData[item.id]}`);
+        const collectedText = collectedPairs.length > 0
+          ? collectedPairs.join("、")
+          : "まだありません";
+        const resumeText = `[ヒアリング再開] 途中で会話が切れましたので、続きからお願いします。\n\n既に取得済みの項目: ${collectedText}\n\n挨拶や自己紹介は不要です。すでに取得した項目は再度聞かず、まだ未取得の項目を5領域の順序（家族→収入→支出→資産→負債）に従って1問ずつ聞いてください。まずは次の1問だけを聞いてください。`;
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            clientContent: {
+              turns: [{ role: "user", parts: [{ text: resumeText }] }],
+              turnComplete: true
+            }
+          }));
+        }
+        hasGreetedRef.current = true; // マイクON時の挨拶トリガーをスキップ
+      }
     }
 
     if (data.serverContent) {
@@ -726,6 +791,11 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
     cleanupAll();
   };
 
+  const resumeConnect = () => {
+    pendingResumeRef.current = true;
+    connect();
+  };
+
   const startListening = async () => {
     if (!isConnected) return;
 
@@ -782,6 +852,17 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
       isListeningRef.current = true;
       setIsListening(true);
       setStatus("聴いています... 話しかけてください");
+
+      // 初回マイクON時にAIから先に挨拶・ヒアリング開始
+      if (!hasGreetedRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
+        hasGreetedRef.current = true;
+        wsRef.current.send(JSON.stringify({
+          clientContent: {
+            turns: [{ role: "user", parts: [{ text: "こんにちは、ライフプラン作成のためのヒアリングをお願いします。まずは簡単なご挨拶と本日の流れをご案内いただき、その後は必ず1問ずつ順番に質問してください。最初の質問としてご本人のお名前だけを聞いてください。" }] }],
+            turnComplete: true
+          }
+        }));
+      }
 
       const monitorVolume = () => {
         if (!isListeningRef.current || !analyserRef.current) return;
@@ -926,25 +1007,25 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
               width: 64, height: 64, borderRadius: 16, margin: "0 auto 16px",
               background: "linear-gradient(135deg, #EF4444, #DC2626)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 28, color: "#fff",
+              fontSize: 31, color: "#fff",
             }}>🔑</div>
             <h2 style={{
-              fontSize: 20, fontWeight: 700, color: "#0F172A",
+              fontSize: 23, fontWeight: 700, color: "#0F172A",
               fontFamily: "'Noto Sans JP', sans-serif", marginBottom: 8,
             }}>APIキーが設定されていません</h2>
             <p style={{
-              fontSize: 13, color: "#64748B", lineHeight: 1.8,
+              fontSize: 16, color: "#64748B", lineHeight: 1.8,
               fontFamily: "'Noto Sans JP', sans-serif",
             }}>
               プロジェクトルートの <code style={{
                 background: "#F1F5F9", padding: "2px 8px", borderRadius: 4,
-                fontFamily: "monospace", fontSize: 13, color: "#0F172A",
+                fontFamily: "monospace", fontSize: 16, color: "#0F172A",
               }}>.env</code> ファイルにAPIキーを設定してください。
             </p>
           </div>
           <div style={{
             background: "#0F172A", borderRadius: 12, padding: "16px 20px",
-            fontFamily: "monospace", fontSize: 13, color: "#E2E8F0", lineHeight: 1.8,
+            fontFamily: "monospace", fontSize: 16, color: "#E2E8F0", lineHeight: 1.8,
           }}>
             <span style={{ color: "#64748B" }}># .env</span><br />
             <span style={{ color: "#7DD3FC" }}>VITE_GEMINI_API_KEY</span>
@@ -952,7 +1033,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
             <span style={{ color: "#86EFAC" }}>あなたのAPIキー</span>
           </div>
           <p style={{
-            fontSize: 12, color: "#94A3B8", marginTop: 16, textAlign: "center",
+            fontSize: 15, color: "#94A3B8", marginTop: 16, textAlign: "center",
             fontFamily: "'Noto Sans JP', sans-serif",
           }}>
             設定後、開発サーバーを再起動してください（npm run dev）
@@ -981,18 +1062,18 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
               animation: connecting ? "pulse 1.5s infinite" : "none",
             }} />
             <span style={{
-              fontSize: 12, color: "#475569",
+              fontSize: 15, color: "#475569",
               fontFamily: "'Noto Sans JP', sans-serif",
             }}>{status}</span>
             {isSpeaking && (
               <span style={{
-                fontSize: 11, padding: "2px 10px", borderRadius: 12,
+                fontSize: 14, padding: "2px 10px", borderRadius: 12,
                 background: "#DBEAFE", color: "#2563EB", fontWeight: 600,
               }}>🔊 AI応答中</span>
             )}
             {isListening && (
               <span style={{
-                fontSize: 11, padding: "2px 10px", borderRadius: 12,
+                fontSize: 14, padding: "2px 10px", borderRadius: 12,
                 background: "#FEE2E2", color: "#DC2626", fontWeight: 600,
                 animation: "pulse 2s infinite",
               }}>🎤 録音中</span>
@@ -1000,18 +1081,29 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {!isConnected ? (
-              <button onClick={connect} disabled={connecting} style={{
-                padding: "6px 16px", borderRadius: 8, border: "none",
-                background: connecting ? "#94A3B8" : "linear-gradient(135deg, #22C55E, #16A34A)",
-                color: "#fff", fontWeight: 600, fontSize: 12,
-                cursor: connecting ? "default" : "pointer",
-                fontFamily: "'Noto Sans JP', sans-serif",
-              }}>{connecting ? "接続中..." : "接続する"}</button>
+              <>
+                {(messages.length > 0 || Object.keys(hearingData).length > 0) && (
+                  <button onClick={resumeConnect} disabled={connecting} style={{
+                    padding: "6px 16px", borderRadius: 8, border: "none",
+                    background: connecting ? "#94A3B8" : "linear-gradient(135deg, #3B82F6, #2563EB)",
+                    color: "#fff", fontWeight: 600, fontSize: 15,
+                    cursor: connecting ? "default" : "pointer",
+                    fontFamily: "'Noto Sans JP', sans-serif",
+                  }}>{connecting ? "再接続中..." : "▶ 続きから再開"}</button>
+                )}
+                <button onClick={connect} disabled={connecting} style={{
+                  padding: "6px 16px", borderRadius: 8, border: "none",
+                  background: connecting ? "#94A3B8" : "linear-gradient(135deg, #22C55E, #16A34A)",
+                  color: "#fff", fontWeight: 600, fontSize: 15,
+                  cursor: connecting ? "default" : "pointer",
+                  fontFamily: "'Noto Sans JP', sans-serif",
+                }}>{connecting ? "接続中..." : (messages.length > 0 ? "新規接続" : "接続する")}</button>
+              </>
             ) : (
               <button onClick={disconnect} style={{
                 padding: "6px 16px", borderRadius: 8, border: "none",
                 background: "#EF4444", color: "#fff", fontWeight: 600,
-                fontSize: 12, cursor: "pointer",
+                fontSize: 15, cursor: "pointer",
                 fontFamily: "'Noto Sans JP', sans-serif",
               }}>切断</button>
             )}
@@ -1022,11 +1114,11 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
         <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px" }}>
           {messages.length === 0 && (
             <div style={{ textAlign: "center", padding: "60px 20px", color: "#94A3B8" }}>
-              <div style={{ fontSize: 56, marginBottom: 16 }}>
+              <div style={{ fontSize: 59, marginBottom: 16 }}>
                 {isConnected ? "🎤" : "🔗"}
               </div>
               <div style={{
-                fontSize: 16, fontWeight: 600, color: "#64748B",
+                fontSize: 19, fontWeight: 600, color: "#64748B",
                 fontFamily: "'Noto Sans JP', sans-serif", marginBottom: 8,
               }}>
                 {isConnected
@@ -1034,7 +1126,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
                   : "「接続する」ボタンを押して開始"}
               </div>
               <div style={{
-                fontSize: 13, color: "#94A3B8", lineHeight: 1.6,
+                fontSize: 16, color: "#94A3B8", lineHeight: 1.6,
                 fontFamily: "'Noto Sans JP', sans-serif",
               }}>
                 Gemini Live API ({GEMINI_MODEL.split("/")[1]})<br />
@@ -1053,7 +1145,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
                   width: 36, height: 36, borderRadius: "50%", marginRight: 10, flexShrink: 0,
                   background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontSize: 14, fontWeight: 700,
+                  color: "#fff", fontSize: 17, fontWeight: 700,
                 }}>AI</div>
               )}
               <div style={{
@@ -1067,12 +1159,12 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
                   : "0 1px 4px rgba(0,0,0,0.06)",
                 borderTopRightRadius: msg.role === "user" ? 4 : 16,
                 borderTopLeftRadius: msg.role === "ai" ? 4 : 16,
-                fontFamily: "'Noto Sans JP', sans-serif", fontSize: 14, lineHeight: 1.7,
+                fontFamily: "'Noto Sans JP', sans-serif", fontSize: 17, lineHeight: 1.7,
               }}>
                 {msg.text ? (msg.role === "ai" ? filterJapaneseOnly(msg.text) || msg.text : msg.text) : (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span>🔊</span>
-                    <span style={{ color: "#64748B", fontSize: 13 }}>音声応答</span>
+                    <span style={{ color: "#64748B", fontSize: 16 }}>音声応答</span>
                   </div>
                 )}
               </div>
@@ -1085,7 +1177,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
                 width: 36, height: 36, borderRadius: "50%",
                 background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontSize: 14, fontWeight: 700,
+                color: "#fff", fontSize: 17, fontWeight: 700,
               }}>AI</div>
               <div style={{
                 padding: "12px 18px", borderRadius: 16, background: "#fff",
@@ -1100,7 +1192,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
                   ))}
                 </div>
                 <span style={{
-                  fontSize: 12, color: "#64748B", marginLeft: 6,
+                  fontSize: 15, color: "#64748B", marginLeft: 6,
                   fontFamily: "'Noto Sans JP', sans-serif",
                 }}>応答中...</span>
               </div>
@@ -1121,7 +1213,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
                 background: isListening
                   ? "linear-gradient(135deg, #EF4444, #DC2626)"
                   : "linear-gradient(135deg, #3B82F6, #2563EB)",
-                color: "#fff", fontSize: 26, cursor: "pointer",
+                color: "#fff", fontSize: 29, cursor: "pointer",
                 boxShadow: isListening
                   ? `0 0 0 ${4 + volume * 24}px rgba(239,68,68,${0.12 + volume * 0.25}), 0 4px 16px rgba(239,68,68,0.3)`
                   : "0 4px 16px rgba(59,130,246,0.3)",
@@ -1135,7 +1227,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
           {isConnected && (
             <div style={{ textAlign: "center", marginBottom: 12 }}>
               <span style={{
-                fontSize: 12,
+                fontSize: 15,
                 color: isListening ? "#DC2626" : "#94A3B8",
                 fontFamily: "'Noto Sans JP', sans-serif",
                 fontWeight: isListening ? 600 : 400,
@@ -1153,7 +1245,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
               disabled={!isConnected}
               style={{
                 flex: 1, padding: "12px 18px", borderRadius: 12,
-                border: "1px solid #E2E8F0", fontSize: 14,
+                border: "1px solid #E2E8F0", fontSize: 17,
                 fontFamily: "'Noto Sans JP', sans-serif",
                 outline: "none", transition: "border 0.2s",
                 opacity: isConnected ? 1 : 0.5,
@@ -1167,7 +1259,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
               background: isConnected
                 ? "linear-gradient(135deg, #3B82F6, #2563EB)"
                 : "#CBD5E1",
-              color: "#fff", fontWeight: 600, fontSize: 14,
+              color: "#fff", fontWeight: 600, fontSize: 17,
               fontFamily: "'Noto Sans JP', sans-serif",
             }}>送信</button>
           </div>
@@ -1176,7 +1268,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
               {["家族構成を教えてください", "収入を確認したい", "毎月の支出について", "資産状況を伺う", "住宅ローンの状況"].map(s => (
                 <button key={s} onClick={() => setInput(s)} style={{
                   padding: "6px 14px", borderRadius: 20, border: "1px solid #E2E8F0",
-                  background: "#F8FAFC", cursor: "pointer", fontSize: 12, color: "#475569",
+                  background: "#F8FAFC", cursor: "pointer", fontSize: 15, color: "#475569",
                   fontFamily: "'Noto Sans JP', sans-serif",
                 }}>{s}</button>
               ))}
@@ -1199,10 +1291,10 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
             <>
               <div style={{ marginBottom: 20 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
                     ヒアリング進捗
                   </span>
-                  <span style={{ fontSize: 12, color: analyzing ? "#3B82F6" : "#94A3B8" }}>
+                  <span style={{ fontSize: 15, color: analyzing ? "#3B82F6" : "#94A3B8" }}>
                     {analyzing ? "🔄 分析中..." : "会話から自動判定"}
                   </span>
                 </div>
@@ -1213,7 +1305,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
                     transition: "width 0.8s ease",
                   }} />
                 </div>
-                <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 4, textAlign: "right" }}>
+                <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 4, textAlign: "right" }}>
                   {totalFilled}/{TOTAL_ITEMS} 項目取得済
                 </div>
               </div>
@@ -1226,12 +1318,12 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
                     <div style={{
                       display: "flex", alignItems: "center", gap: 6, marginBottom: 6,
                     }}>
-                      <span style={{ fontSize: 14 }}>{section.icon}</span>
+                      <span style={{ fontSize: 17 }}>{section.icon}</span>
                       <span style={{
-                        fontSize: 12, fontWeight: 700, color: section.color,
+                        fontSize: 15, fontWeight: 700, color: section.color,
                         fontFamily: "'Noto Sans JP', sans-serif",
                       }}>{section.label}</span>
-                      <span style={{ marginLeft: "auto", fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>
+                      <span style={{ marginLeft: "auto", fontSize: 14, color: "#94A3B8", fontWeight: 600 }}>
                         {filled}/{sectionItems.length}
                       </span>
                     </div>
@@ -1240,7 +1332,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
                         const value = hearingData[item.id];
                         return (
                           <div key={item.id} title={value || "未取得"} style={{
-                            fontSize: 10, padding: "3px 6px", borderRadius: 5,
+                            fontSize: 13, padding: "3px 6px", borderRadius: 5,
                             background: value ? section.accent : "#F8FAFC",
                             color: value ? section.color : "#94A3B8",
                             border: value ? `1px solid ${section.color}33` : "1px solid #E2E8F0",
@@ -1250,7 +1342,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
                             cursor: "default",
                           }}>
                             {item.icon} {item.label}
-                            {value && <span style={{ fontSize: 9, marginLeft: 2 }}>✓</span>}
+                            {value && <span style={{ fontSize: 12, marginLeft: 2 }}>✓</span>}
                           </div>
                         );
                       })}
@@ -1268,11 +1360,11 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
           background: isConnected ? "#F0FDF4" : "#F8FAFC",
           border: `1px solid ${isConnected ? "#BBF7D0" : "#E2E8F0"}`,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: isConnected ? "#166534" : "#64748B", marginBottom: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: isConnected ? "#166534" : "#64748B", marginBottom: 8 }}>
             {isConnected ? "🟢 Gemini Live 接続中" : "⚪ 未接続"}
           </div>
           <div style={{
-            fontSize: 10, color: "#64748B", lineHeight: 1.6,
+            fontSize: 13, color: "#64748B", lineHeight: 1.6,
             fontFamily: "'Noto Sans JP', sans-serif",
           }}>
             {isConnected
@@ -1288,11 +1380,11 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
             background: "linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)",
             border: "1px solid #BFDBFE",
           }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#1E40AF", marginBottom: 6 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1E40AF", marginBottom: 6 }}>
               🧠 AI 分析コメント
             </div>
             <div style={{
-              fontSize: 11, color: "#334155", lineHeight: 1.6,
+              fontSize: 14, color: "#334155", lineHeight: 1.6,
               fontFamily: "'Noto Sans JP', sans-serif",
             }}>
               {analysisData.analysisText}
@@ -1315,20 +1407,20 @@ function HearingView({ hearingData, analysisData }) {
   return (
     <div style={{ padding: "32px 48px", background: "#FAFBFD", minHeight: "calc(100vh - 64px)", overflowY: "auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
+        <h2 style={{ fontSize: 23, fontWeight: 700, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
           ライフプラン ヒアリングシート
         </h2>
         {hasAnyData && (
           <div style={{
             padding: "6px 16px", borderRadius: 20,
             background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
-            color: "#fff", fontSize: 13, fontWeight: 700,
+            color: "#fff", fontSize: 16, fontWeight: 700,
           }}>
             {totalFilled}/{TOTAL_ITEMS} 項目取得済
           </div>
         )}
       </div>
-      <p style={{ fontSize: 13, color: "#64748B", marginBottom: 28, fontFamily: "'Noto Sans JP', sans-serif" }}>
+      <p style={{ fontSize: 16, color: "#64748B", marginBottom: 28, fontFamily: "'Noto Sans JP', sans-serif" }}>
         {hasAnyData
           ? "会話から自動抽出されたヒアリング情報です。緑色の項目は取得済みです。"
           : "まだヒアリング情報がありません。会話タブで音声会話を開始すると、自動で情報が抽出されます。"}
@@ -1338,11 +1430,11 @@ function HearingView({ hearingData, analysisData }) {
         <div style={{
           textAlign: "center", padding: "80px 20px", color: "#94A3B8",
         }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>📋</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#64748B", fontFamily: "'Noto Sans JP', sans-serif", marginBottom: 8 }}>
+          <div style={{ fontSize: 59, marginBottom: 16 }}>📋</div>
+          <div style={{ fontSize: 19, fontWeight: 600, color: "#64748B", fontFamily: "'Noto Sans JP', sans-serif", marginBottom: 8 }}>
             会話を開始するとヒアリング項目が自動で記入されます
           </div>
-          <div style={{ fontSize: 13, color: "#94A3B8", fontFamily: "'Noto Sans JP', sans-serif" }}>
+          <div style={{ fontSize: 16, color: "#94A3B8", fontFamily: "'Noto Sans JP', sans-serif" }}>
             会話タブに戻って、お客様との対話を進めてください
           </div>
         </div>
@@ -1359,9 +1451,9 @@ function HearingView({ hearingData, analysisData }) {
               width: 36, height: 36, borderRadius: 10,
               background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 16, fontWeight: 700,
+              color: "#fff", fontSize: 19, fontWeight: 700,
             }}>AI</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#1E3A5F", fontFamily: "'Noto Sans JP', sans-serif" }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#1E3A5F", fontFamily: "'Noto Sans JP', sans-serif" }}>
               AI 分析コメント
             </div>
           </div>
@@ -1376,11 +1468,11 @@ function HearingView({ hearingData, analysisData }) {
                 background: "#fff", borderRadius: 10, padding: "10px 14px",
                 border: "1px solid #E2E8F0",
               }}>
-                <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 4, fontFamily: "'Noto Sans JP', sans-serif" }}>
+                <div style={{ fontSize: 13, color: "#94A3B8", marginBottom: 4, fontFamily: "'Noto Sans JP', sans-serif" }}>
                   {item.label}
                 </div>
                 <div style={{
-                  fontSize: 13, fontWeight: 600,
+                  fontSize: 16, fontWeight: 600,
                   color: item.value === "未取得" ? "#CBD5E1" : "#1E293B",
                   fontFamily: "'Noto Sans JP', sans-serif",
                 }}>
@@ -1392,7 +1484,7 @@ function HearingView({ hearingData, analysisData }) {
           <div style={{
             padding: "14px 18px", borderRadius: 10,
             background: "#fff", border: "1px solid #E2E8F0",
-            fontSize: 13, lineHeight: 1.9, color: "#334155",
+            fontSize: 16, lineHeight: 1.9, color: "#334155",
             fontFamily: "'Noto Sans JP', sans-serif",
           }}>
             {analysisData.analysisText}
@@ -1414,12 +1506,12 @@ function HearingView({ hearingData, analysisData }) {
                   <div style={{
                     padding: "4px 10px", borderRadius: 6,
                     background: section.accent, color: section.color,
-                    fontSize: 14, fontWeight: 700,
+                    fontSize: 17, fontWeight: 700,
                   }}>{section.icon}</div>
-                  <span style={{ fontWeight: 700, fontSize: 15, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
+                  <span style={{ fontWeight: 700, fontSize: 18, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
                     {section.label}
                   </span>
-                  <span style={{ marginLeft: "auto", fontSize: 12, color: section.color, fontWeight: 700 }}>
+                  <span style={{ marginLeft: "auto", fontSize: 15, color: section.color, fontWeight: 700 }}>
                     {filled}/{sectionItems.length}
                   </span>
                 </div>
@@ -1427,7 +1519,7 @@ function HearingView({ hearingData, analysisData }) {
                 {section.groups.map(group => (
                   <div key={group.label} style={{ marginBottom: 14 }}>
                     <div style={{
-                      fontSize: 11, fontWeight: 700, color: "#64748B",
+                      fontSize: 14, fontWeight: 700, color: "#64748B",
                       marginBottom: 6, letterSpacing: "0.05em",
                       fontFamily: "'Noto Sans JP', sans-serif",
                     }}>
@@ -1444,18 +1536,18 @@ function HearingView({ hearingData, analysisData }) {
                           transition: "all 0.3s",
                           animation: value ? "fadeIn 0.4s ease" : "none",
                         }}>
-                          <span style={{ fontSize: 14, marginRight: 6, width: 20 }}>{item.icon}</span>
+                          <span style={{ fontSize: 17, marginRight: 6, width: 20 }}>{item.icon}</span>
                           <span style={{
-                            fontSize: 12, fontWeight: value ? 600 : 400,
+                            fontSize: 15, fontWeight: value ? 600 : 400,
                             color: value ? "#166534" : "#94A3B8",
                             fontFamily: "'Noto Sans JP', sans-serif", flex: 1,
                           }}>{item.label}</span>
                           {value ? (
-                            <span style={{ fontSize: 11, color: "#15803D", fontWeight: 500, fontFamily: "'Noto Sans JP', sans-serif", marginLeft: 6, textAlign: "right", maxWidth: "50%" }}>
+                            <span style={{ fontSize: 14, color: "#15803D", fontWeight: 500, fontFamily: "'Noto Sans JP', sans-serif", marginLeft: 6, textAlign: "right", maxWidth: "50%" }}>
                               {value}
                             </span>
                           ) : (
-                            <span style={{ fontSize: 10, color: "#CBD5E1" }}>未取得</span>
+                            <span style={{ fontSize: 13, color: "#CBD5E1" }}>未取得</span>
                           )}
                         </div>
                       );
