@@ -218,7 +218,15 @@ function base64ToArrayBuffer(base64) {
 const GEMINI_MODEL = "models/gemini-2.5-flash-native-audio-preview-12-2025";
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
-const SYSTEM_INSTRUCTION = `あなたはファイナンシャルプランニングのAIヒアリングアドバイザーです。日本語のみで応答してください。英語や内部思考は出力しないでください。
+const SYSTEM_INSTRUCTION = `あなたはファイナンシャルプランニングのAIヒアリングアドバイザーです。日本語のみで応答してください。
+
+【出力の絶対ルール】
+- 日本語以外の言語（英語・中国語等）は一切使わないでください。
+- 英単語を括弧書きで添える行為も禁止です（例: 「氏名(Name)」「性別(Gender)」はNG。「お名前」「性別」とだけ言う）。
+- 内部のヒアリング項目ID（fam_self_name 等）や内部システム名称を口に出さないでください。
+- 「ヒアリングフローに従い」「確認事項も遵守し」「質問の準備は万端です」「取得済みです」「次の質問は〜に関するものです」のような、内部の手続き・進捗・思考プロセスを説明するメタ発言は一切禁止です。
+- ステップ番号（「ステップ1-1」等）や項目番号を口に出さないでください。
+- お客様と自然な日常会話だけを行ってください。アシスタントが裏で何を追跡しているかはお客様には見せません。
 
 【絶対守るべき応答ルール】
 - 1回の応答では必ず「1つの項目についての1つの質問」だけにしてください。
@@ -278,6 +286,34 @@ function filterJapaneseOnly(text) {
   if (!text) return text;
   // Remove markdown bold markers like **...**
   let filtered = text.replace(/\*\*[^*]*\*\*/g, "");
+
+  // 括弧内に英字を含むもの（(Name), （Gender) など）を除去
+  filtered = filtered.replace(/\s*[\(（][^\)）]*[a-zA-Z][^\)）]*[\)）]/g, "");
+
+  // 文中に残った孤立英単語（2文字以上連続する英字）を除去。ただしiDeCo, NISA, REIT など保険用語は残す
+  const WHITELIST = /\b(iDeCo|NISA|REIT|AI|FP|API)\b/g;
+  const whitelistPlaceholders = [];
+  filtered = filtered.replace(WHITELIST, (m) => {
+    const ph = `__WL${whitelistPlaceholders.length}__`;
+    whitelistPlaceholders.push(m);
+    return ph;
+  });
+  filtered = filtered.replace(/[a-zA-Z]{2,}/g, "");
+  whitelistPlaceholders.forEach((word, i) => {
+    filtered = filtered.replace(`__WL${i}__`, word);
+  });
+
+  // メタ発言の除去（AIの内部メモ的な文言）
+  const metaPhrases = [
+    /ヒアリングフローに従い、?/g,
+    /確認事項も遵守し、?/g,
+    /質問の準備は万端です。?/g,
+    /現在、?[^。]*は取得済みです。?/g,
+    /(次の質問は|続いては)[^。]*に関するものです。?/g,
+    /[^。]*フローに従って[^。]*。?/g,
+    /(ステップ\s*\d+[-−‐\d）\)）\s]*)+/g,
+  ];
+  metaPhrases.forEach(rx => { filtered = filtered.replace(rx, ""); });
 
   // 文単位で分割（英語ピリオド、日本語句読点、改行で分割）
   // 英語の文（ピリオドで終わる）と日本語の文（。？！で終わる）を区別
@@ -567,7 +603,8 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
         const collectedText = collectedPairs.length > 0
           ? collectedPairs.join("、")
           : "まだありません";
-        const resumeText = `[ヒアリング再開] 途中で会話が切れましたので、続きからお願いします。\n\n既に取得済みの項目: ${collectedText}\n\n挨拶や自己紹介は不要です。すでに取得した項目は再度聞かず、まだ未取得の項目を5領域の順序（家族→収入→支出→資産→負債）に従って1問ずつ聞いてください。まずは次の1問だけを聞いてください。`;
+        // AIが口に出してはいけない内部メモ（メタ発言NG）+ 次の1問だけ自然に聞く指示
+        const resumeText = `[システム内部メモ（絶対に読み上げないこと）] 会話が途切れたため再開します。既に取得済み: ${collectedText}。\n\n【あなたの応答】挨拶・状況説明・取得済み項目への言及・再開の宣言・英語表記は全て禁止。取得済み項目を再度質問することも禁止。次に聞くべき未取得項目を1つだけ選び、ごく自然な日本語で「○○を教えていただけますか？」とだけ短く聞いてください。他のことは一切話さないでください。`;
         if (wsRef.current?.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({
             clientContent: {
@@ -858,7 +895,7 @@ function ConversationView({ hearingData, setHearingData, analysisData, setAnalys
         hasGreetedRef.current = true;
         wsRef.current.send(JSON.stringify({
           clientContent: {
-            turns: [{ role: "user", parts: [{ text: "こんにちは、ライフプラン作成のためのヒアリングをお願いします。まずは簡単なご挨拶と本日の流れをご案内いただき、その後は必ず1問ずつ順番に質問してください。最初の質問としてご本人のお名前だけを聞いてください。" }] }],
+            turns: [{ role: "user", parts: [{ text: "[システム内部メモ（絶対に読み上げないこと）] ヒアリング開始。\n\n【あなたの応答】英語表記・メタ発言・内部項目名の言及は全て禁止。自然な日本語で、短い挨拶（1〜2文）と本日の流れの簡単な案内（1文）をした後、最初の質問として「お名前を教えていただけますか？」とだけ聞いてください。それ以外のことは話さないでください。" }] }],
             turnComplete: true
           }
         }));
@@ -1403,6 +1440,13 @@ function HearingView({ hearingData, analysisData }) {
   const totalFilled = ALL_HEARING_ITEMS.filter(item => hearingData[item.id]).length;
   const hasAnyData = totalFilled > 0;
   const profile = analysisData?.customerProfile || {};
+  const overallPercent = TOTAL_ITEMS > 0 ? Math.round((totalFilled / TOTAL_ITEMS) * 100) : 0;
+  const statusText =
+    totalFilled === 0 ? "会話タブからヒアリングを開始してください"
+    : overallPercent < 30 ? "ヒアリング進行中"
+    : overallPercent < 70 ? "情報収集が進んでいます"
+    : overallPercent < 100 ? "ライフプラン作成の準備が整いつつあります"
+    : "ヒアリング完了 - ライフプラン作成可能";
 
   return (
     <div style={{ padding: "32px 48px", background: "#FAFBFD", minHeight: "calc(100vh - 64px)", overflowY: "auto" }}>
@@ -1410,21 +1454,97 @@ function HearingView({ hearingData, analysisData }) {
         <h2 style={{ fontSize: 23, fontWeight: 700, color: "#0F172A", fontFamily: "'Noto Sans JP', sans-serif" }}>
           ライフプラン ヒアリングシート
         </h2>
-        {hasAnyData && (
-          <div style={{
-            padding: "6px 16px", borderRadius: 20,
-            background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
-            color: "#fff", fontSize: 16, fontWeight: 700,
-          }}>
-            {totalFilled}/{TOTAL_ITEMS} 項目取得済
-          </div>
-        )}
       </div>
-      <p style={{ fontSize: 16, color: "#64748B", marginBottom: 28, fontFamily: "'Noto Sans JP', sans-serif" }}>
+      <p style={{ fontSize: 16, color: "#64748B", marginBottom: 24, fontFamily: "'Noto Sans JP', sans-serif" }}>
         {hasAnyData
           ? "会話から自動抽出されたヒアリング情報です。緑色の項目は取得済みです。"
           : "まだヒアリング情報がありません。会話タブで音声会話を開始すると、自動で情報が抽出されます。"}
       </p>
+
+      {/* Dashboard - Overall + Category Breakdown */}
+      <div style={{
+        background: "linear-gradient(135deg, #0F172A 0%, #1E3A8A 55%, #2563EB 100%)",
+        borderRadius: 20, padding: "28px 32px", marginBottom: 28,
+        boxShadow: "0 10px 40px rgba(15,23,42,0.25)",
+        position: "relative", overflow: "hidden",
+      }}>
+        <div style={{
+          position: "absolute", top: -80, right: -80, width: 260, height: 260,
+          borderRadius: "50%", background: "radial-gradient(circle, rgba(96,165,250,0.18), transparent 70%)",
+          pointerEvents: "none",
+        }} />
+        <div style={{
+          display: "grid", gridTemplateColumns: "minmax(260px, 300px) 1fr",
+          gap: 28, alignItems: "center", position: "relative",
+        }}>
+          {/* Overall Progress */}
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            <div style={{ position: "relative", width: 120, height: 120, flexShrink: 0 }}>
+              <ProgressRing percent={overallPercent} color="#60A5FA" size={120} stroke={9} />
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", color: "#fff",
+              }}>
+                <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em" }}>{overallPercent}%</div>
+                <div style={{ fontSize: 11, opacity: 0.65, marginTop: 2 }}>{totalFilled} / {TOTAL_ITEMS} 項目</div>
+              </div>
+            </div>
+            <div style={{ color: "#fff" }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.22em", opacity: 0.55, fontWeight: 600, fontFamily: "monospace" }}>
+                OVERALL PROGRESS
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.72, marginTop: 10, fontFamily: "'Noto Sans JP', sans-serif" }}>
+                取得済み
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 700, marginTop: 2, fontFamily: "'Noto Sans JP', sans-serif" }}>
+                {totalFilled}/{TOTAL_ITEMS} 項目
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.55, marginTop: 8, fontFamily: "'Noto Sans JP', sans-serif" }}>
+                {statusText}
+              </div>
+            </div>
+          </div>
+
+          {/* Category Breakdown */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 }}>
+            {HEARING_SECTIONS.map(section => {
+              const items = section.groups.flatMap(g => g.items);
+              const filled = items.filter(it => hearingData[it.id]).length;
+              const pct = items.length > 0 ? Math.round((filled / items.length) * 100) : 0;
+              return (
+                <div key={section.id} style={{
+                  background: "rgba(255,255,255,0.07)",
+                  borderRadius: 12, padding: "14px 8px 12px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  textAlign: "center",
+                  transition: "all 0.2s",
+                }}>
+                  <div style={{ fontSize: 18, marginBottom: 4, lineHeight: 1 }}>{section.icon}</div>
+                  <div style={{ position: "relative", width: 56, height: 56, margin: "4px auto 8px" }}>
+                    <ProgressRing percent={pct} color={section.color} size={56} stroke={5} />
+                    <div style={{
+                      position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontSize: 12, fontWeight: 800,
+                    }}>{pct}%</div>
+                  </div>
+                  <div style={{
+                    fontSize: 11, color: "#fff", fontWeight: 600, opacity: 0.92,
+                    fontFamily: "'Noto Sans JP', sans-serif", lineHeight: 1.3,
+                    minHeight: 28,
+                  }}>
+                    {section.label}
+                  </div>
+                  <div style={{ fontSize: 10, color: "#fff", opacity: 0.55, marginTop: 4, fontFamily: "monospace" }}>
+                    {filled} / {items.length}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       {!hasAnyData && (
         <div style={{
